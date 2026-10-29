@@ -16,7 +16,7 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Bebas+Neue&family=DM+Serif+Display:ital@1&family=Instrument+Serif&family=Noto+Sans+JP:wght@400;600;700&family=Space+Mono:wght@700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700&display=swap">
 <style>
   /* 中央の一列。光の点、見出し、ひとつの操作だけを縦に積む */
   :root {
@@ -297,33 +297,8 @@
     color: var(--intro-fg);
   }
 
-  /* マッチカット：画面の中心に「one」を固定し、周りの紙面だけを拍に合わせて差し替える */
-  #intro .stage {
-    position: absolute;
-    inset: 0;
-    overflow: hidden;
-    transform-origin: 50% 50%;
-  }
-  #intro .cut { position: absolute; inset: 0; visibility: hidden; }
-  #intro .cut.on { visibility: visible; }
-  #intro .page {
-    position: absolute;
-    left: 0;
-    top: 0;
-    white-space: nowrap;
-    line-height: 1.12;
-  }
-  #intro .page p { opacity: 0.38; }
-  #intro .page p.hit-line { opacity: 1; }
-  #intro .page p.hit-line .rest { opacity: 0.38; }
-  #intro .hit { display: inline-block; padding: 0 0.08em; }
-  #intro .hl-marker .hit { background: var(--mark, #8fa0ff); color: #000; }
-  #intro .hl-invert .hit { background: currentColor; }
-  #intro .hl-invert .hit span { color: var(--cut-bg); }
-  #intro .hl-box .hit { outline: 0.06em solid currentColor; outline-offset: 0.04em; }
-  #intro .hl-underline .hit { text-decoration: underline; text-decoration-thickness: 0.08em; text-underline-offset: 0.12em; }
-  #intro .hl-glow .hit { color: #8fa0ff; text-shadow: 0 0 0.3em rgba(143, 160, 255, 0.8); }
-  #intro .hl-blue .hit { color: #8fa0ff; }
+  /* マッチカットの紙面は matchcut.js が組む */
+  #intro .stage { position: absolute; inset: 0; }
   /* 光の点と名前は、マッチカットが終わるまで隠しておく */
   #intro .orb, #intro .halo, #intro .ripple, #intro .word { opacity: 0; }
   #intro .flash { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; }
@@ -370,6 +345,7 @@
   </section>
 </main>
 
+<script src="matchcut.js"></script>
 <script>
   const KEY = "hitotsu";
   const form = document.getElementById("form");
@@ -515,113 +491,12 @@
   // ---- 起動アニメーション ----
   // 1) テキストのマッチカット（140BPMで加速） 2) 暗転の中に「one」と光の点 3) 点が見出しの上へ収まる
   // タップかキー入力で最後まで飛ばせる
-  const CUT_STYLES = [
-    { bg: "#f2f0ea", fg: "#141414", font: '"Instrument Serif", serif', size: 58, hl: "marker" },
-    { bg: "#000000", fg: "#f5f5f7", font: '"Archivo Black", sans-serif', size: 44, hl: "invert", upper: true },
-    { bg: "#8fa0ff", fg: "#05060a", font: '"Space Mono", monospace', size: 30, hl: "box" },
-    { bg: "#ffffff", fg: "#111111", font: 'Georgia, "Times New Roman", serif', size: 42, weight: 700, hl: "underline" },
-    { bg: "#0b0c10", fg: "#e9eaee", font: '"Bebas Neue", sans-serif', size: 104, hl: "glow", upper: true },
-    { bg: "#e6e6e1", fg: "#1d1d1f", font: '"DM Serif Display", serif', size: 64, italic: true, hl: "marker" },
-    { bg: "#000000", fg: "#ffffff", font: '"Archivo Black", sans-serif', size: 54, hl: "blue" },
-    { bg: "#ffffff", fg: "#000000", font: '-apple-system, "Helvetica Neue", Arial, sans-serif', size: 38, weight: 700, hl: "invert" },
-  ];
-
-  const CUT_LINES = [
-    "you don't need a longer list",
-    "everything else can wait until tomorrow",
-    "close the other tabs",
-    "that is enough for today",
-    "write it down before you start",
-    "no notifications, no backlog",
-    "small enough to finish today",
-    "don't add anything else",
-    "the rest is just noise",
-    "start before you feel ready",
-    "a single line on a blank page",
-    "decide it, then do it",
-    "focus is a decision",
-    "stop planning and begin",
-    "make today lighter",
-    "the list can stay closed",
-    "quiet morning, warm coffee",
-    "leave the rest for tomorrow",
-  ];
-
-  const CUT_HITS = [
-    ["just ", " thing."],
-    ["do ", " thing today"],
-    ["only ", ""],
-    ["the ", " that matters"],
-    ["today, just ", ""],
-    ["pick ", " and let the rest go"],
-    ["", " step at a time"],
-    ["no. ", ""],
-    ["just ", " more"],
-    ["", " line, nothing else"],
-    ["the only ", " you need"],
-    ["", " day"],
-  ];
-
   const BEAT = 60 / 140;
   const CUT_SECTIONS = [
     { n: 16, step: BEAT / 4 },
     { n: 16, step: BEAT / 6 },
     { n: 16, step: BEAT / 8 },
   ];
-
-  function buildCut(stage, i, pick) {
-    const st = CUT_STYLES[i % CUT_STYLES.length];
-    const k = Math.min(1.1, Math.max(0.55, innerWidth / 900));
-    const cut = document.createElement("div");
-    cut.className = `cut hl-${st.hl}`;
-    cut.style.background = st.bg;
-    cut.style.color = st.fg;
-    cut.style.setProperty("--cut-bg", st.bg);
-
-    const page = document.createElement("div");
-    page.className = "page";
-    page.style.fontFamily = st.font;
-    page.style.fontSize = `${Math.round(st.size * k)}px`;
-    page.style.fontWeight = st.weight || 400;
-    page.style.fontStyle = st.italic ? "italic" : "normal";
-    page.style.textTransform = st.upper ? "uppercase" : "none";
-
-    // 画面の上から下まで埋まる行数にし、各行の頭にも文を置いて左右も埋める
-    const lh = Math.round(st.size * k) * 1.12;
-    const half = Math.ceil(innerHeight / 2 / lh) + 1;
-    const filler = () => pick(CUT_LINES) + "  " + pick(CUT_LINES) + "  " + pick(CUT_LINES) + "  ";
-    let hitEl;
-    for (let n = -half; n <= half; n++) {
-      const p = document.createElement("p");
-      if (n === 0) {
-        const [pre, post] = pick(CUT_HITS);
-        p.className = "hit-line";
-        const a = document.createElement("span");
-        a.className = "rest";
-        a.textContent = filler() + pre;
-        hitEl = document.createElement("span");
-        hitEl.className = "hit";
-        hitEl.innerHTML = "<span>one</span>";
-        const b = document.createElement("span");
-        b.className = "rest";
-        b.textContent = post + "  " + filler();
-        p.append(a, hitEl, b);
-      } else {
-        p.textContent = filler() + filler();
-      }
-      page.append(p);
-    }
-    cut.append(page);
-    stage.append(cut);
-
-    // 「one」の中心が画面の中心に来るように紙面ごとずらす
-    const pr = page.getBoundingClientRect();
-    const hr = hitEl.getBoundingClientRect();
-    const x = innerWidth / 2 - (hr.left - pr.left + hr.width / 2);
-    const y = innerHeight / 2 - (hr.top - pr.top + hr.height / 2);
-    page.style.transform = `translate(${x}px, ${y}px)`;
-    return cut;
-  }
 
   async function playIntro() {
     const intro = document.getElementById("intro");
@@ -636,19 +511,10 @@
       return;
     }
 
-    // フォントが揃ってから紙面を組む（揃う前に測ると「one」の位置がずれる）
-    try {
-      await Promise.race([
-        Promise.all(CUT_STYLES.map((st) => document.fonts.load(`${st.italic ? "italic " : ""}${st.weight || 400} 40px ${st.font}`, "one ONE"))),
-        new Promise((r) => setTimeout(r, 1500)),
-      ]);
-    } catch (e) {}
+    await MatchCut.ready();
 
     const $ = (s) => intro.querySelector(s);
     const stage = $(".stage");
-    let seed = 7;
-    const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
-    const pick = (arr) => arr[Math.floor(rand() * arr.length)];
 
     const cutTimes = [];
     let t = 0.15;
@@ -659,7 +525,7 @@
       }
     }
     const cutsEnd = t;
-    const cuts = cutTimes.map((_, i) => buildCut(stage, i, pick));
+    const cuts = MatchCut.build(stage, cutTimes.length);
 
     const ease = "cubic-bezier(0.2, 0.8, 0.2, 1)";
     const swift = "cubic-bezier(0.45, 0, 0.15, 1)";
