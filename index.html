@@ -8,7 +8,7 @@
 <meta name="description" content="今日やることを1つだけ決めるアプリ">
 <meta name="apple-mobile-web-app-title" content="ひとつ">
 <meta name="theme-color" content="#eef0f2" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0f1115" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#0b0c10" media="(prefers-color-scheme: dark)">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -23,6 +23,10 @@
     --line: #cfd3da;
     --accent: #3346a8;
     --on-accent: #f4f5f8;
+    --halo: rgba(51, 70, 168, 0.14);
+    --intro-bg: #0b0c10;
+    --intro-fg: #e9eaee;
+    --intro-glow: #8fa0ff;
     --display: "Shippori Mincho B1", "Hiragino Mincho ProN", "Yu Mincho", serif;
     --ui: "Zen Kaku Gothic New", "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif;
   }
@@ -34,6 +38,7 @@
       --line: #2a2e38;
       --accent: #8fa0ff;
       --on-accent: #0f1115;
+      --halo: rgba(143, 160, 255, 0.16);
       color-scheme: dark;
     }
   }
@@ -44,6 +49,7 @@
     --line: #2a2e38;
     --accent: #8fa0ff;
     --on-accent: #0f1115;
+    --halo: rgba(143, 160, 255, 0.16);
     color-scheme: dark;
   }
 
@@ -68,11 +74,62 @@
   /* 左上のしるし */
   .mark {
     position: fixed;
-    top: calc(24px + env(safe-area-inset-top, 0px));
-    left: calc(24px + env(safe-area-inset-left, 0px));
-    width: 28px;
-    height: 28px;
-    color: var(--fg);
+    top: calc(28px + env(safe-area-inset-top, 0px));
+    left: calc(28px + env(safe-area-inset-left, 0px));
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 6px var(--halo), 0 0 18px 2px var(--halo);
+  }
+  .intro .mark { opacity: 0; }
+
+  /* 起動アニメーション：暗転の中に光の点がひとつ灯り、左上のしるしへ収まる */
+  #intro {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: var(--intro-bg);
+    overflow: hidden;
+    cursor: pointer;
+  }
+  #intro .orb, #intro .halo, #intro .ripple {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    border-radius: 50%;
+  }
+  #intro .orb {
+    width: 72px;
+    height: 72px;
+    margin: -36px 0 0 -36px;
+    background: var(--intro-glow);
+    box-shadow: 0 0 36px 6px rgba(143, 160, 255, 0.5), 0 0 120px 40px rgba(143, 160, 255, 0.16);
+  }
+  #intro .halo {
+    width: 320px;
+    height: 320px;
+    margin: -160px 0 0 -160px;
+    background: radial-gradient(circle, rgba(143, 160, 255, 0.22) 0%, rgba(143, 160, 255, 0.06) 40%, transparent 70%);
+  }
+  #intro .ripple {
+    width: 72px;
+    height: 72px;
+    margin: -36px 0 0 -36px;
+    border: 1px solid rgba(143, 160, 255, 0.7);
+  }
+  #intro .word {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(50% + 84px);
+    text-align: center;
+    font-family: var(--display);
+    font-weight: 800;
+    font-size: 26px;
+    letter-spacing: 0.28em;
+    padding-left: 0.28em;
+    color: var(--intro-fg);
   }
 
   main {
@@ -173,10 +230,15 @@
   }
 </style>
 </head>
-<body>
-<svg class="mark" viewBox="0 0 512 512" aria-hidden="true">
-  <path fill="currentColor" d="M114 220 H338 L380 186 L424 244 L404 292 H100 Q86 292 90 278 Z"/>
-</svg>
+<body class="intro">
+<span class="mark" aria-hidden="true"></span>
+
+<div id="intro" aria-hidden="true">
+  <div class="halo"></div>
+  <div class="ripple"></div>
+  <div class="orb"></div>
+  <div class="word">ひとつ</div>
+</div>
 
 <main>
   <form id="form" hidden>
@@ -230,7 +292,7 @@
       view.hidden = true;
       form.hidden = false;
       input.value = "";
-      input.focus();
+      if (!document.body.classList.contains("intro")) input.focus();
       return;
     }
     form.hidden = true;
@@ -274,6 +336,90 @@
   });
 
   render();
+  playIntro();
+
+  // 起動アニメーション。タップかキー入力で最後まで飛ばせる
+  function playIntro() {
+    const intro = document.getElementById("intro");
+    const mark = document.querySelector(".mark");
+    const finish = () => {
+      intro.remove();
+      document.body.classList.remove("intro");
+      if (!form.hidden) input.focus();
+    };
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches || !intro.animate) {
+      finish();
+      return;
+    }
+
+    const $ = (s) => intro.querySelector(s);
+    const ease = "cubic-bezier(0.2, 0.8, 0.2, 1)";
+    const swift = "cubic-bezier(0.7, 0, 0.2, 1)";
+    const anims = [];
+    const play = (el, frames, opts) => {
+      const a = el.animate(frames, { fill: "both", easing: ease, ...opts });
+      anims.push(a);
+      return a;
+    };
+
+    // 光の点が灯る
+    play($(".orb"), [
+      { transform: "scale(0.15)", opacity: 0, filter: "blur(14px)" },
+      { transform: "scale(1.12)", opacity: 1, filter: "blur(0)", offset: 0.6 },
+      { transform: "scale(1)", opacity: 1, filter: "blur(0)" },
+    ], { delay: 250, duration: 1100 });
+    play($(".halo"), [
+      { transform: "scale(0.4)", opacity: 0 },
+      { transform: "scale(1)", opacity: 1 },
+    ], { delay: 250, duration: 1500 });
+    play($(".ripple"), [
+      { transform: "scale(1)", opacity: 0.8 },
+      { transform: "scale(6)", opacity: 0 },
+    ], { delay: 800, duration: 1600, easing: "cubic-bezier(0.1, 0.6, 0.3, 1)" });
+
+    // 名前がにじみから浮かび上がる
+    play($(".word"), [
+      { opacity: 0, filter: "blur(10px)", letterSpacing: "0.7em", paddingLeft: "0.7em" },
+      { opacity: 1, filter: "blur(0)", letterSpacing: "0.28em", paddingLeft: "0.28em" },
+    ], { delay: 1100, duration: 1100 });
+
+    // 暗転が明けて、点が左上のしるしへ収まる
+    const out = 2600;
+    play($(".word"), [{ opacity: 1 }, { opacity: 0, filter: "blur(6px)" }],
+      { delay: out, duration: 400, fill: "forwards" });
+    play($(".halo"), [{ opacity: 1 }, { opacity: 0 }], { delay: out, duration: 500, fill: "forwards" });
+    play(intro, [{ backgroundColor: getComputedStyle(intro).backgroundColor }, { backgroundColor: "transparent" }],
+      { delay: out + 100, duration: 800, easing: swift });
+
+    const orbRect = $(".orb").getBoundingClientRect();
+    const markRect = mark.getBoundingClientRect();
+    const dx = markRect.left + markRect.width / 2 - (orbRect.left + orbRect.width / 2);
+    const dy = markRect.top + markRect.height / 2 - (orbRect.top + orbRect.height / 2);
+    const fly = play($(".orb"), [
+      { transform: "translate(0, 0) scale(1)", backgroundColor: getComputedStyle($(".orb")).backgroundColor },
+      { transform: `translate(${dx}px, ${dy}px) scale(${markRect.width / orbRect.width})`, backgroundColor: getComputedStyle(mark).backgroundColor },
+    ], { delay: out + 100, duration: 1000, easing: swift, fill: "forwards" });
+
+    // 中身がふわりと立ち上がる
+    const section = form.hidden ? view : form;
+    [...section.children].forEach((el, i) => {
+      play(el, [
+        { opacity: 0, transform: "translateY(18px)", filter: "blur(8px)" },
+        { opacity: 1, transform: "none", filter: "blur(0)" },
+      ], { delay: out + 700 + i * 110, duration: 900 });
+    });
+
+    const skip = () => anims.forEach((a) => a.finish());
+    intro.addEventListener("pointerdown", skip);
+    addEventListener("keydown", skip);
+
+    fly.finished.then(() => {
+      removeEventListener("keydown", skip);
+      finish();
+      // 中身の表示が終わったらアニメーションの指定を外し、元のスタイルに戻す
+      Promise.all(anims.map((a) => a.finished)).then(() => anims.forEach((a) => a.cancel()));
+    });
+  }
 </script>
 </body>
 </html>
