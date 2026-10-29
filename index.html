@@ -2,32 +2,49 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>ひとつ</title>
+<meta name="claude:viewport-fit-sides" content="cover">
 <meta name="description" content="今日やることを1つだけ決めるアプリ">
+<meta name="apple-mobile-web-app-title" content="ひとつ">
+<meta name="theme-color" content="#eef0f2" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1115" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@500;800&family=Zen+Kaku+Gothic+New:wght@400;500&display=swap">
 <style>
+  /* 一枚の紙に一行だけ。明朝の大きな一行と、藍の一筆だけで構成する */
   :root {
-    --bg: #f7f5f0;
-    --fg: #1f1d1a;
-    --muted: #9a958c;
-    --line: #d9d4ca;
-    --accent: #1f1d1a;
+    --bg: #eef0f2;
+    --fg: #15171c;
+    --muted: #7d828e;
+    --line: #cfd3da;
+    --accent: #3346a8;
+    --on-accent: #f4f5f8;
+    --display: "Shippori Mincho B1", "Hiragino Mincho ProN", "Yu Mincho", serif;
+    --ui: "Zen Kaku Gothic New", "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --bg: #141412;
-      --fg: #ece8e0;
-      --muted: #6f6b64;
-      --line: #34322e;
-      --accent: #ece8e0;
+      --bg: #0f1115;
+      --fg: #e9eaee;
+      --muted: #6c7180;
+      --line: #2a2e38;
+      --accent: #8fa0ff;
+      --on-accent: #0f1115;
+      color-scheme: dark;
     }
   }
   :root[data-theme="dark"] {
-    --bg: #141412;
-    --fg: #ece8e0;
-    --muted: #6f6b64;
-    --line: #34322e;
-    --accent: #ece8e0;
+    --bg: #0f1115;
+    --fg: #e9eaee;
+    --muted: #6c7180;
+    --line: #2a2e38;
+    --accent: #8fa0ff;
+    --on-accent: #0f1115;
+    color-scheme: dark;
   }
 
   * { box-sizing: border-box; margin: 0; }
@@ -37,100 +54,130 @@
   body {
     background: var(--bg);
     color: var(--fg);
-    font-family: "Hiragino Sans", "Noto Sans JP", "Yu Gothic", system-ui, sans-serif;
+    font-family: var(--ui);
     display: grid;
     place-items: center;
-    padding: 16px;
+    padding-block: 16px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
     -webkit-font-smoothing: antialiased;
-  }
-
-  main {
-    width: 100%;
-    max-width: 640px;
-    text-align: center;
   }
 
   [hidden] { display: none !important; }
 
+  /* 左上のしるし */
+  .mark {
+    position: fixed;
+    top: calc(24px + env(safe-area-inset-top, 0px));
+    left: calc(24px + env(safe-area-inset-left, 0px));
+    width: 28px;
+    height: 28px;
+    color: var(--fg);
+  }
+
+  main {
+    width: 100%;
+    max-width: 680px;
+    text-align: center;
+  }
+
   /* 入力画面 */
-  form { display: grid; gap: 24px; }
+  form { display: grid; gap: 28px; }
 
   label {
-    font-size: 14px;
-    letter-spacing: 0.2em;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.32em;
     color: var(--muted);
   }
 
   input {
     width: 100%;
-    font: inherit;
-    font-size: clamp(22px, 6vw, 32px);
+    font-family: var(--display);
+    font-weight: 500;
+    font-size: clamp(24px, 6.4vw, 36px);
     text-align: center;
     color: var(--fg);
     background: transparent;
     border: none;
     border-bottom: 1px solid var(--line);
-    padding: 12px 4px;
+    border-radius: 0;
+    padding: 14px 4px;
     outline: none;
-    transition: border-color 0.2s;
+    transition: border-color 0.3s;
   }
-  input:focus { border-color: var(--fg); }
+  input:focus { border-bottom-color: var(--accent); }
   input::placeholder { color: var(--line); }
 
   /* 表示画面 */
   #task {
-    font-size: clamp(28px, 8vw, 52px);
-    font-weight: 600;
-    line-height: 1.4;
+    font-family: var(--display);
+    font-weight: 800;
+    font-size: clamp(32px, 9vw, 64px);
+    line-height: 1.45;
+    letter-spacing: 0.04em;
+    text-wrap: balance;
     overflow-wrap: anywhere;
-    transition: color 0.4s, opacity 0.4s;
   }
-  .done #task {
+  #task span {
+    background: linear-gradient(var(--accent), var(--accent)) no-repeat 0 58% / 0% 0.08em;
+    transition: background-size 0.7s cubic-bezier(0.6, 0, 0.2, 1), color 0.7s;
+  }
+  .done #task span {
+    background-size: 100% 0.08em;
     color: var(--muted);
-    text-decoration: line-through;
-    text-decoration-thickness: 2px;
+  }
+
+  #message {
+    margin-top: 28px;
+    font-size: 13px;
+    letter-spacing: 0.24em;
+    color: var(--accent);
+    min-height: 1.5em;
   }
 
   .actions {
-    margin-top: 56px;
+    margin-top: 48px;
     display: flex;
+    flex-wrap: wrap;
     justify-content: center;
-    gap: 24px;
+    align-items: center;
+    gap: 28px;
   }
 
   button {
     font: inherit;
-    font-size: 14px;
-    letter-spacing: 0.1em;
+    font-size: 13px;
+    letter-spacing: 0.2em;
     color: var(--muted);
     background: none;
     border: none;
     padding: 8px 4px;
     cursor: pointer;
-    transition: color 0.2s;
+    transition: color 0.2s, background-color 0.2s, border-color 0.2s;
   }
-  button:hover, button:focus-visible { color: var(--fg); }
-  button:focus-visible { outline: 1px solid var(--line); outline-offset: 4px; }
+  button:hover { color: var(--fg); }
+  button:focus-visible { outline: 1px solid var(--accent); outline-offset: 4px; }
 
   #doneBtn {
     color: var(--fg);
     border: 1px solid var(--fg);
-    border-radius: 999px;
-    padding: 10px 28px;
+    border-radius: 2px;
+    padding: 12px 36px;
   }
-  #doneBtn:hover { background: var(--fg); color: var(--bg); }
+  #doneBtn:hover { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
   .done #doneBtn { display: none; }
 
-  #message {
-    margin-top: 24px;
-    font-size: 14px;
-    color: var(--muted);
-    letter-spacing: 0.1em;
-    min-height: 1.5em;
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
   }
 </style>
 </head>
 <body>
+<svg class="mark" viewBox="0 0 512 512" aria-hidden="true">
+  <path fill="currentColor" d="M114 220 H338 L380 186 L424 244 L404 292 H100 Q86 292 90 278 Z"/>
+</svg>
+
 <main>
   <form id="form" hidden>
     <label for="input">今日やることを、1つだけ。</label>
@@ -138,7 +185,7 @@
   </form>
 
   <section id="view" hidden>
-    <h1 id="task"></h1>
+    <h1 id="task"><span></span></h1>
     <p id="message"></p>
     <div class="actions">
       <button id="doneBtn" type="button">やった</button>
@@ -152,7 +199,7 @@
   const form = document.getElementById("form");
   const input = document.getElementById("input");
   const view = document.getElementById("view");
-  const task = document.getElementById("task");
+  const task = document.querySelector("#task span");
   const message = document.getElementById("message");
 
   // 日付が変わったらリセットするため、ローカル日付をキーにする
