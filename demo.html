@@ -147,7 +147,7 @@
 <section class="screen" id="start">
   <span class="dot" aria-hidden="true"></span>
   <h1 class="wordmark">one</h1>
-  <p class="sub">A text match cut. 7 seconds, with sound.</p>
+  <p class="sub">A text match cut. 5 seconds, with sound.</p>
   <div class="row">
     <button class="play" id="playBtn" type="button">
       <svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2 1.2v11.6L12.5 7z" fill="currentColor"/></svg>
@@ -279,14 +279,14 @@
     return cut;
   }
 
-  // ---- タイムライン（140BPM。最初から半拍で切り、1/4拍、1/8拍へ加速する） ----
+  // ---- タイムライン（140BPM。最初から1/4拍で切り、1/6拍、1/8拍へ加速する） ----
   const BEAT = 60 / 140;
   function timeline() {
     const ev = [{ t: 0, type: "intro" }, { t: 0, type: "kick", soft: true }];
     let t = BEAT;
     const sections = [
-      { n: 16, step: BEAT / 2 },
       { n: 16, step: BEAT / 4 },
+      { n: 16, step: BEAT / 6 },
       { n: 16, step: BEAT / 8 },
     ];
     let cut = 0;
@@ -294,7 +294,7 @@
     for (const sec of sections) {
       for (let i = 0; i < sec.n; i++) {
         ev.push({ t, type: "cut", i: cut++, fast: sec.step < BEAT / 4 });
-        const onBeat = Math.abs((t - BEAT) / BEAT - Math.round((t - BEAT) / BEAT)) < 1e-6;
+        const onBeat = Math.abs((t - BEAT) / BEAT - Math.round((t - BEAT) / BEAT)) < 1e-3;
         if (onBeat) {
           ev.push({ t, type: "kick" });
           if (beat++ % 2 === 1) ev.push({ t, type: "snare" });
