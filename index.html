@@ -7,49 +7,57 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <meta name="description" content="今日やることを1つだけ決めるアプリ">
 <meta name="apple-mobile-web-app-title" content="ひとつ">
-<meta name="theme-color" content="#eef0f2" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0b0c10" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@500;800&family=Zen+Kaku+Gothic+New:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;700&display=swap">
 <style>
-  /* 一枚の紙に一行だけ。明朝の大きな一行と、藍の一筆だけで構成する */
+  /* 中央の一列。光の点、見出し、ひとつの操作だけを縦に積む */
   :root {
-    --bg: #eef0f2;
-    --fg: #15171c;
-    --muted: #7d828e;
-    --line: #cfd3da;
-    --accent: #3346a8;
-    --on-accent: #f4f5f8;
-    --halo: rgba(51, 70, 168, 0.14);
-    --intro-bg: #0b0c10;
-    --intro-fg: #e9eaee;
+    --bg: #f5f5f7;
+    --fg: #1d1d1f;
+    --muted: #86868b;
+    --line: #d2d2d7;
+    --field: #ffffff;
+    --accent: #4f5bd5;
+    --on-accent: #ffffff;
+    --halo: rgba(79, 91, 213, 0.16);
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 28px rgba(0, 0, 0, 0.06);
+    --intro-bg: #000000;
+    --intro-fg: #f5f5f7;
     --intro-glow: #8fa0ff;
-    --display: "Shippori Mincho B1", "Hiragino Mincho ProN", "Yu Mincho", serif;
-    --ui: "Zen Kaku Gothic New", "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif;
+    --ui: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --bg: #0f1115;
-      --fg: #e9eaee;
-      --muted: #6c7180;
-      --line: #2a2e38;
+      --bg: #000000;
+      --fg: #f5f5f7;
+      --muted: #86868b;
+      --line: #38383a;
+      --field: #1c1c1e;
       --accent: #8fa0ff;
-      --on-accent: #0f1115;
-      --halo: rgba(143, 160, 255, 0.16);
+      --on-accent: #000000;
+      --halo: rgba(143, 160, 255, 0.2);
+      --shadow: 0 0 0 1px rgba(255, 255, 255, 0.06);
       color-scheme: dark;
     }
   }
   :root[data-theme="dark"] {
-    --bg: #0f1115;
-    --fg: #e9eaee;
-    --muted: #6c7180;
-    --line: #2a2e38;
+    --bg: #000000;
+    --fg: #f5f5f7;
+    --muted: #86868b;
+    --line: #38383a;
+    --field: #1c1c1e;
     --accent: #8fa0ff;
-    --on-accent: #0f1115;
-    --halo: rgba(143, 160, 255, 0.16);
+    --on-accent: #000000;
+    --halo: rgba(143, 160, 255, 0.2);
+    --shadow: 0 0 0 1px rgba(255, 255, 255, 0.06);
     color-scheme: dark;
   }
 
@@ -63,28 +71,177 @@
     font-family: var(--ui);
     display: grid;
     place-items: center;
-    padding-block: 16px;
+    padding-top: max(24px, env(safe-area-inset-top, 0px));
+    padding-bottom: max(24px, env(safe-area-inset-bottom, 0px));
     padding-left: max(16px, env(safe-area-inset-left, 0px));
     padding-right: max(16px, env(safe-area-inset-right, 0px));
     -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
   }
 
   [hidden] { display: none !important; }
 
-  /* 左上のしるし */
+  main {
+    width: 100%;
+    max-width: 640px;
+    display: grid;
+    justify-items: center;
+    gap: 36px;
+    text-align: center;
+  }
+
+  /* 光の点。起動時の点がここへ収まる */
   .mark {
-    position: fixed;
-    top: calc(28px + env(safe-area-inset-top, 0px));
-    left: calc(28px + env(safe-area-inset-left, 0px));
     width: 14px;
     height: 14px;
     border-radius: 50%;
     background: var(--accent);
-    box-shadow: 0 0 0 6px var(--halo), 0 0 18px 2px var(--halo);
+    box-shadow: 0 0 0 6px var(--halo), 0 0 22px 4px var(--halo);
   }
   .intro .mark { opacity: 0; }
 
-  /* 起動アニメーション：暗転の中に光の点がひとつ灯り、左上のしるしへ収まる */
+  section { width: 100%; display: grid; justify-items: center; }
+
+  .eyebrow {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: 0.02em;
+  }
+
+  /* 入力画面 */
+  #form { gap: 28px; }
+
+  #form label {
+    font-size: clamp(26px, 7vw, 40px);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    line-height: 1.25;
+    text-wrap: balance;
+  }
+
+  .field {
+    position: relative;
+    width: 100%;
+    max-width: 520px;
+  }
+
+  input {
+    width: 100%;
+    height: 64px;
+    font: inherit;
+    font-size: 20px;
+    font-weight: 400;
+    color: var(--fg);
+    background: var(--field);
+    border: 1px solid transparent;
+    border-radius: 18px;
+    box-shadow: var(--shadow);
+    padding: 0 64px 0 22px;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  input:focus { border-color: var(--accent); box-shadow: 0 0 0 4px var(--halo); }
+  input::placeholder { color: var(--muted); }
+
+  #submitBtn {
+    position: absolute;
+    top: 50%;
+    right: 12px;
+    width: 40px;
+    height: 40px;
+    margin-top: -20px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: var(--on-accent);
+    display: grid;
+    place-items: center;
+    padding: 0;
+    opacity: 0;
+    transform: scale(0.6);
+    pointer-events: none;
+    transition: opacity 0.25s, transform 0.35s cubic-bezier(0.3, 1.5, 0.5, 1);
+  }
+  .has-text #submitBtn { opacity: 1; transform: scale(1); pointer-events: auto; }
+  #submitBtn svg { width: 18px; height: 18px; }
+
+  /* 表示画面 */
+  #view { gap: 16px; }
+
+  #task {
+    font-size: clamp(36px, 10vw, 68px);
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+    overflow-wrap: anywhere;
+  }
+  #task span {
+    background: linear-gradient(var(--accent), var(--accent)) no-repeat 0 55% / 0% 0.07em;
+    transition: background-size 0.8s cubic-bezier(0.65, 0, 0.35, 1), color 0.8s;
+  }
+  .done #task span {
+    background-size: 100% 0.07em;
+    color: var(--muted);
+  }
+
+  .actions {
+    margin-top: 32px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 12px 24px;
+  }
+
+  button {
+    font: inherit;
+    font-size: 17px;
+    font-weight: 400;
+    color: var(--accent);
+    background: none;
+    border: none;
+    padding: 10px 4px;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.2s, background-color 0.2s;
+  }
+  button:active { transform: scale(0.96); }
+  button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 999px; }
+  #editBtn:hover { opacity: 0.7; }
+
+  #doneBtn {
+    min-width: 160px;
+    height: 50px;
+    padding: 0 32px;
+    border-radius: 999px;
+    background: var(--accent);
+    color: var(--on-accent);
+    font-weight: 600;
+  }
+  #doneBtn:hover { opacity: 0.88; }
+  .done #doneBtn { display: none; }
+
+  /* 完了の印 */
+  #message {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--accent);
+    min-height: 28px;
+  }
+  #message svg { width: 28px; height: 28px; }
+  #message circle { stroke-dasharray: 76; stroke-dashoffset: 76; transition: stroke-dashoffset 0.6s 0.4s cubic-bezier(0.65, 0, 0.35, 1); }
+  #message path { stroke-dasharray: 20; stroke-dashoffset: 20; transition: stroke-dashoffset 0.35s 0.9s ease-out; }
+  #message span { opacity: 0; transform: translateX(-6px); transition: opacity 0.4s 1s, transform 0.4s 1s; }
+  .done #message circle, .done #message path { stroke-dashoffset: 0; }
+  .done #message span { opacity: 1; transform: none; }
+  #view:not(.done) #message { visibility: hidden; }
+
+  /* 起動アニメーション：暗転の中に光の点がひとつ灯り、見出しの上へ収まる */
   #intro {
     position: fixed;
     inset: 0;
@@ -104,7 +261,7 @@
     height: 72px;
     margin: -36px 0 0 -36px;
     background: var(--intro-glow);
-    box-shadow: 0 0 36px 6px rgba(143, 160, 255, 0.5), 0 0 120px 40px rgba(143, 160, 255, 0.16);
+    box-shadow: 0 0 36px 6px rgba(143, 160, 255, 0.5), 0 0 110px 30px rgba(143, 160, 255, 0.16);
   }
   #intro .halo {
     width: 320px;
@@ -122,108 +279,14 @@
     position: absolute;
     left: 0;
     right: 0;
-    top: calc(50% + 84px);
+    top: calc(50% + 80px);
     text-align: center;
-    font-family: var(--display);
-    font-weight: 800;
-    font-size: 26px;
-    letter-spacing: 0.28em;
-    padding-left: 0.28em;
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    padding-left: 0.16em;
     color: var(--intro-fg);
   }
-
-  main {
-    width: 100%;
-    max-width: 680px;
-    text-align: center;
-  }
-
-  /* 入力画面 */
-  form { display: grid; gap: 28px; }
-
-  label {
-    font-size: 13px;
-    font-weight: 500;
-    letter-spacing: 0.32em;
-    color: var(--muted);
-  }
-
-  input {
-    width: 100%;
-    font-family: var(--display);
-    font-weight: 500;
-    font-size: clamp(24px, 6.4vw, 36px);
-    text-align: center;
-    color: var(--fg);
-    background: transparent;
-    border: none;
-    border-bottom: 1px solid var(--line);
-    border-radius: 0;
-    padding: 14px 4px;
-    outline: none;
-    transition: border-color 0.3s;
-  }
-  input:focus { border-bottom-color: var(--accent); }
-  input::placeholder { color: var(--line); }
-
-  /* 表示画面 */
-  #task {
-    font-family: var(--display);
-    font-weight: 800;
-    font-size: clamp(32px, 9vw, 64px);
-    line-height: 1.45;
-    letter-spacing: 0.04em;
-    text-wrap: balance;
-    overflow-wrap: anywhere;
-  }
-  #task span {
-    background: linear-gradient(var(--accent), var(--accent)) no-repeat 0 58% / 0% 0.08em;
-    transition: background-size 0.7s cubic-bezier(0.6, 0, 0.2, 1), color 0.7s;
-  }
-  .done #task span {
-    background-size: 100% 0.08em;
-    color: var(--muted);
-  }
-
-  #message {
-    margin-top: 28px;
-    font-size: 13px;
-    letter-spacing: 0.24em;
-    color: var(--accent);
-    min-height: 1.5em;
-  }
-
-  .actions {
-    margin-top: 48px;
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    align-items: center;
-    gap: 28px;
-  }
-
-  button {
-    font: inherit;
-    font-size: 13px;
-    letter-spacing: 0.2em;
-    color: var(--muted);
-    background: none;
-    border: none;
-    padding: 8px 4px;
-    cursor: pointer;
-    transition: color 0.2s, background-color 0.2s, border-color 0.2s;
-  }
-  button:hover { color: var(--fg); }
-  button:focus-visible { outline: 1px solid var(--accent); outline-offset: 4px; }
-
-  #doneBtn {
-    color: var(--fg);
-    border: 1px solid var(--fg);
-    border-radius: 2px;
-    padding: 12px 36px;
-  }
-  #doneBtn:hover { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
-  .done #doneBtn { display: none; }
 
   @media (prefers-reduced-motion: reduce) {
     * { transition: none !important; }
@@ -231,8 +294,6 @@
 </style>
 </head>
 <body class="intro">
-<span class="mark" aria-hidden="true"></span>
-
 <div id="intro" aria-hidden="true">
   <div class="halo"></div>
   <div class="ripple"></div>
@@ -241,16 +302,27 @@
 </div>
 
 <main>
+  <span class="mark" aria-hidden="true"></span>
+
   <form id="form" hidden>
-    <label for="input">今日やることを、1つだけ。</label>
-    <input id="input" type="text" maxlength="80" autocomplete="off" required>
+    <label for="input">今日やることを、<br>1つだけ。</label>
+    <div class="field">
+      <input id="input" type="text" maxlength="80" autocomplete="off" enterkeyhint="done" placeholder="ひとつだけ書く" required>
+      <button id="submitBtn" type="submit" aria-label="決める">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5.5 11.5 12 5l6.5 6.5"/></svg>
+      </button>
+    </div>
   </form>
 
   <section id="view" hidden>
+    <p class="eyebrow">今日の1つ</p>
     <h1 id="task"><span></span></h1>
-    <p id="message"></p>
     <div class="actions">
       <button id="doneBtn" type="button">やった</button>
+      <p id="message">
+        <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="14" cy="14" r="12" transform="rotate(-90 14 14)"/><path d="M9 14.5l3.4 3.4L19 11"/></svg>
+        <span>今日はもう十分。</span>
+      </p>
       <button id="editBtn" type="button">書き直す</button>
     </div>
   </section>
@@ -259,10 +331,10 @@
 <script>
   const KEY = "hitotsu";
   const form = document.getElementById("form");
+  const field = document.querySelector(".field");
   const input = document.getElementById("input");
   const view = document.getElementById("view");
   const task = document.querySelector("#task span");
-  const message = document.getElementById("message");
 
   // 日付が変わったらリセットするため、ローカル日付をキーにする
   function today() {
@@ -270,28 +342,79 @@
     return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
   }
 
-  function load() {
+  // iPhoneではlocalStorageが消えることがあるので、Cookie と IndexedDB にも同じ内容を書く
+  const stores = {
+    local: {
+      get: () => localStorage.getItem(KEY),
+      set: (v) => (v ? localStorage.setItem(KEY, v) : localStorage.removeItem(KEY)),
+    },
+    cookie: {
+      get: () => {
+        const m = document.cookie.match(new RegExp(`(?:^|; )${KEY}=([^;]*)`));
+        return m ? decodeURIComponent(m[1]) : null;
+      },
+      set: (v) => {
+        document.cookie = v
+          ? `${KEY}=${encodeURIComponent(v)}; max-age=${60 * 60 * 24 * 3}; path=/; SameSite=Lax`
+          : `${KEY}=; max-age=0; path=/; SameSite=Lax`;
+      },
+    },
+  };
+
+  function idb(mode, fn) {
+    return new Promise((resolve) => {
+      try {
+        const req = indexedDB.open(KEY, 1);
+        req.onupgradeneeded = () => req.result.createObjectStore("kv");
+        req.onerror = () => resolve(null);
+        req.onsuccess = () => {
+          const tx = req.result.transaction("kv", mode);
+          const r = fn(tx.objectStore("kv"));
+          tx.oncomplete = () => resolve(r && r.result);
+          tx.onerror = () => resolve(null);
+        };
+      } catch (e) {
+        resolve(null);
+      }
+    });
+  }
+
+  function parse(raw) {
     try {
-      const data = JSON.parse(localStorage.getItem(KEY));
+      const data = JSON.parse(raw);
       if (data && data.date === today()) return data;
     } catch (e) {}
     return null;
   }
 
-  function save(data) {
-    try {
-      if (data) localStorage.setItem(KEY, JSON.stringify(data));
-      else localStorage.removeItem(KEY);
-    } catch (e) {}
+  async function load() {
+    for (const s of Object.values(stores)) {
+      let data = null;
+      try { data = parse(s.get()); } catch (e) {}
+      if (data) return data;
+    }
+    const timeout = new Promise((r) => setTimeout(() => r(null), 500));
+    return parse(await Promise.race([idb("readonly", (os) => os.get(KEY)), timeout]));
   }
 
-  let state = load();
+  function save(data) {
+    const raw = data ? JSON.stringify(data) : null;
+    for (const s of Object.values(stores)) {
+      try { s.set(raw); } catch (e) {}
+    }
+    idb("readwrite", (os) => (raw ? os.put(raw, KEY) : os.delete(KEY)));
+  }
+
+  try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch (e) {}
+
+  let state = null;
 
   function render() {
     if (!state) {
       view.hidden = true;
       form.hidden = false;
       input.value = "";
+      field.classList.remove("has-text");
       if (!document.body.classList.contains("intro")) input.focus();
       return;
     }
@@ -299,8 +422,11 @@
     view.hidden = false;
     task.textContent = state.text;
     view.classList.toggle("done", state.done);
-    message.textContent = state.done ? "今日はもう十分。" : "";
   }
+
+  input.addEventListener("input", () => {
+    field.classList.toggle("has-text", input.value.trim() !== "");
+  });
 
   form.addEventListener("submit", (e) => {
     e.preventDefault();
@@ -308,6 +434,7 @@
     if (!text) return;
     state = { date: today(), text, done: false };
     save(state);
+    input.blur();
     render();
   });
 
@@ -323,6 +450,7 @@
     save(null);
     render();
     input.value = prev;
+    field.classList.add("has-text");
     input.select();
   });
 
@@ -335,8 +463,12 @@
     }
   });
 
-  render();
-  playIntro();
+  load().then((data) => {
+    state = data;
+    if (state) save(state);
+    render();
+    playIntro();
+  });
 
   // 起動アニメーション。タップかキー入力で最後まで飛ばせる
   function playIntro() {
@@ -354,7 +486,7 @@
 
     const $ = (s) => intro.querySelector(s);
     const ease = "cubic-bezier(0.2, 0.8, 0.2, 1)";
-    const swift = "cubic-bezier(0.7, 0, 0.2, 1)";
+    const swift = "cubic-bezier(0.65, 0, 0.25, 1)";
     const anims = [];
     const play = (el, frames, opts) => {
       const a = el.animate(frames, { fill: "both", easing: ease, ...opts });
@@ -379,34 +511,36 @@
 
     // 名前がにじみから浮かび上がる
     play($(".word"), [
-      { opacity: 0, filter: "blur(10px)", letterSpacing: "0.7em", paddingLeft: "0.7em" },
-      { opacity: 1, filter: "blur(0)", letterSpacing: "0.28em", paddingLeft: "0.28em" },
+      { opacity: 0, filter: "blur(10px)", letterSpacing: "0.6em", paddingLeft: "0.6em" },
+      { opacity: 1, filter: "blur(0)", letterSpacing: "0.16em", paddingLeft: "0.16em" },
     ], { delay: 1100, duration: 1100 });
 
-    // 暗転が明けて、点が左上のしるしへ収まる
+    // 暗転が明けて、点が見出しの上の定位置へ収まる
     const out = 2600;
     play($(".word"), [{ opacity: 1 }, { opacity: 0, filter: "blur(6px)" }],
       { delay: out, duration: 400, fill: "forwards" });
     play($(".halo"), [{ opacity: 1 }, { opacity: 0 }], { delay: out, duration: 500, fill: "forwards" });
     play(intro, [{ backgroundColor: getComputedStyle(intro).backgroundColor }, { backgroundColor: "transparent" }],
-      { delay: out + 100, duration: 800, easing: swift });
+      { delay: out + 100, duration: 900, easing: swift, fill: "forwards" });
 
-    const orbRect = $(".orb").getBoundingClientRect();
+    const orb = $(".orb");
+    const orbRect = orb.getBoundingClientRect();
     const markRect = mark.getBoundingClientRect();
     const dx = markRect.left + markRect.width / 2 - (orbRect.left + orbRect.width / 2);
     const dy = markRect.top + markRect.height / 2 - (orbRect.top + orbRect.height / 2);
-    const fly = play($(".orb"), [
-      { transform: "translate(0, 0) scale(1)", backgroundColor: getComputedStyle($(".orb")).backgroundColor },
-      { transform: `translate(${dx}px, ${dy}px) scale(${markRect.width / orbRect.width})`, backgroundColor: getComputedStyle(mark).backgroundColor },
+    const s = markRect.width / orbRect.width;
+    const fly = play(orb, [
+      { transform: "translate(0, 0) scale(1)", backgroundColor: getComputedStyle(orb).backgroundColor, boxShadow: getComputedStyle(orb).boxShadow },
+      { transform: `translate(${dx}px, ${dy}px) scale(${s})`, backgroundColor: getComputedStyle(mark).backgroundColor, boxShadow: "0 0 0 0 rgba(143, 160, 255, 0)" },
     ], { delay: out + 100, duration: 1000, easing: swift, fill: "forwards" });
 
     // 中身がふわりと立ち上がる
     const section = form.hidden ? view : form;
     [...section.children].forEach((el, i) => {
       play(el, [
-        { opacity: 0, transform: "translateY(18px)", filter: "blur(8px)" },
+        { opacity: 0, transform: "translateY(20px)", filter: "blur(8px)" },
         { opacity: 1, transform: "none", filter: "blur(0)" },
-      ], { delay: out + 700 + i * 110, duration: 900 });
+      ], { delay: out + 600 + i * 110, duration: 900 });
     });
 
     const skip = () => anims.forEach((a) => a.finish());
