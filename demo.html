@@ -1,0 +1,443 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>one Match Cut</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="アプリ one のテキストマッチカット風デモ">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Bebas+Neue&family=DM+Serif+Display:ital@1&family=Instrument+Serif&family=Noto+Sans+JP:wght@900&family=Noto+Serif+JP:wght@700&family=Space+Mono:wght@700&display=swap">
+<style>
+  /* 画面の中心に「one」を固定し、その周りの紙面だけを拍に合わせて差し替える */
+  :root {
+    --bg: #000000;
+    --fg: #f5f5f7;
+    --muted: #86868b;
+    --glow: #8fa0ff;
+    --on-glow: #000000;
+    --ui: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--ui);
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+  }
+  [hidden] { display: none !important; }
+
+  /* 開始画面と最後の画面 */
+  .screen {
+    position: fixed;
+    inset: 0;
+    display: grid;
+    place-content: center;
+    justify-items: center;
+    gap: 28px;
+    text-align: center;
+    padding-top: max(24px, env(safe-area-inset-top, 0px));
+    padding-bottom: max(24px, env(safe-area-inset-bottom, 0px));
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    z-index: 5;
+    background: var(--bg);
+  }
+  .dot {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: radial-gradient(circle, var(--glow) 0 7px, rgba(143, 160, 255, 0.2) 7.5px 13px, transparent 13.5px);
+    box-shadow: 0 0 24px 4px rgba(143, 160, 255, 0.18);
+  }
+  .wordmark {
+    font-size: clamp(72px, 22vw, 168px);
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    line-height: 0.9;
+  }
+  .sub { font-size: 15px; color: var(--muted); letter-spacing: 0.04em; }
+  .row { display: flex; flex-wrap: wrap; gap: 12px 20px; justify-content: center; align-items: center; }
+
+  button, .link {
+    font: inherit;
+    font-size: 17px;
+    border: none;
+    cursor: pointer;
+    text-decoration: none;
+    transition: opacity 0.2s, transform 0.2s;
+  }
+  button:active, .link:active { transform: scale(0.96); }
+  button:focus-visible, .link:focus-visible { outline: 2px solid var(--glow); outline-offset: 3px; }
+  .play {
+    height: 50px;
+    padding: 0 30px;
+    border-radius: 999px;
+    background: var(--glow);
+    color: var(--on-glow);
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .play svg { width: 14px; height: 14px; }
+  .link { color: var(--glow); background: none; padding: 10px 4px; }
+
+  /* 紙面。1カットごとに1枚 */
+  #stage {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    transform-origin: 50% 50%;
+  }
+  .cut {
+    position: absolute;
+    inset: 0;
+    visibility: hidden;
+  }
+  .cut.on { visibility: visible; }
+  .page {
+    position: absolute;
+    left: 0;
+    top: 0;
+    white-space: nowrap;
+    line-height: 1.12;
+  }
+  .page p { opacity: 0.38; }
+  .page p.hit-line { opacity: 1; }
+  .page p.hit-line .rest { opacity: 0.38; }
+  .hit { display: inline-block; padding: 0 0.08em; }
+
+  .hl-marker .hit { background: var(--mark, #8fa0ff); color: #000; }
+  .hl-invert .hit { background: currentColor; }
+  .hl-invert .hit span { color: var(--cut-bg); }
+  .hl-box .hit { outline: 0.06em solid currentColor; outline-offset: 0.04em; }
+  .hl-underline .hit { text-decoration: underline; text-decoration-thickness: 0.08em; text-underline-offset: 0.12em; }
+  .hl-glow .hit { color: #8fa0ff; text-shadow: 0 0 0.3em rgba(143, 160, 255, 0.8); }
+  .hl-blue .hit { color: #8fa0ff; }
+
+  #flash {
+    position: fixed;
+    inset: 0;
+    background: #fff;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 4;
+  }
+
+  /* フォントを先読みさせるための見えない見本 */
+  #preload { position: absolute; left: -9999px; top: 0; visibility: hidden; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<div id="preload" aria-hidden="true"></div>
+<div id="stage" aria-hidden="true"></div>
+<div id="flash" aria-hidden="true"></div>
+
+<section class="screen" id="start">
+  <span class="dot" aria-hidden="true"></span>
+  <h1 class="wordmark">one</h1>
+  <p class="sub">テキストマッチカットのデモ。約12秒、音が出ます。</p>
+  <div class="row">
+    <button class="play" id="playBtn" type="button">
+      <svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2 1.2v11.6L12.5 7z" fill="currentColor"/></svg>
+      再生
+    </button>
+    <button class="link" id="muteBtn" type="button">音なしで再生</button>
+  </div>
+</section>
+
+<section class="screen" id="end" hidden>
+  <span class="dot" aria-hidden="true"></span>
+  <h1 class="wordmark">one</h1>
+  <p class="sub">今日やることを、1つだけ。</p>
+  <div class="row">
+    <button class="play" id="againBtn" type="button">もう一度</button>
+    <a class="link" href="https://weakestandstrongest-sketch.github.io/iti/" target="_blank" rel="noopener">アプリを開く</a>
+  </div>
+</section>
+
+<script>
+  // ---- 紙面の素材 ----
+  const STYLES = [
+    { bg: "#f2f0ea", fg: "#141414", font: '"Instrument Serif", serif', size: 58, hl: "marker" },
+    { bg: "#000000", fg: "#f5f5f7", font: '"Archivo Black", sans-serif', size: 44, hl: "invert", upper: true },
+    { bg: "#8fa0ff", fg: "#05060a", font: '"Space Mono", monospace', size: 30, hl: "box" },
+    { bg: "#ffffff", fg: "#111111", font: '"Noto Serif JP", serif', size: 40, weight: 700, hl: "underline" },
+    { bg: "#0b0c10", fg: "#e9eaee", font: '"Bebas Neue", sans-serif', size: 104, hl: "glow", upper: true },
+    { bg: "#e6e6e1", fg: "#1d1d1f", font: '"DM Serif Display", serif', size: 64, italic: true, hl: "marker" },
+    { bg: "#000000", fg: "#ffffff", font: '"Noto Sans JP", sans-serif', size: 50, weight: 900, hl: "blue" },
+    { bg: "#ffffff", fg: "#000000", font: '-apple-system, "Helvetica Neue", Arial, sans-serif', size: 38, weight: 700, hl: "invert" },
+  ];
+
+  const LINES = [
+    "you don't need a longer list",
+    "everything else can wait until tomorrow",
+    "close the other tabs",
+    "今日は、それだけでいい。",
+    "write it down before you start",
+    "no notifications, no backlog",
+    "small enough to finish today",
+    "やることは増やさない。",
+    "the rest is just noise",
+    "start before you feel ready",
+    "a single line on a blank page",
+    "決めたら、あとはやるだけ。",
+    "focus is a decision",
+    "stop planning and begin",
+    "今日を、軽くする。",
+    "the list can stay closed",
+    "quiet morning, warm coffee",
+    "ほかのことは、明日の自分に。",
+  ];
+
+  const HITS = [
+    ["just ", " thing."],
+    ["do ", " thing today"],
+    ["only ", ""],
+    ["the ", " that matters"],
+    ["今日の ", " だけ。"],
+    ["pick ", " and let the rest go"],
+    ["", " step at a time"],
+    ["no. ", ""],
+    ["just ", " more"],
+    ["", " line, ", ""],
+    ["ほんとうに大事な ", " を"],
+    ["", " day"],
+  ];
+
+  // 毎回同じ並びになるよう、簡単な乱数を種から作る
+  let seed = 7;
+  const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  const pick = (arr) => arr[Math.floor(rand() * arr.length)];
+
+  const stage = document.getElementById("stage");
+  const flash = document.getElementById("flash");
+
+  function buildCut(i) {
+    const st = STYLES[i % STYLES.length];
+    const k = Math.min(1.1, Math.max(0.55, innerWidth / 900));
+    const cut = document.createElement("div");
+    cut.className = `cut hl-${st.hl}`;
+    cut.style.background = st.bg;
+    cut.style.color = st.fg;
+    cut.style.setProperty("--cut-bg", st.bg);
+    if (st.hl === "marker" && st.bg === "#8fa0ff") cut.style.setProperty("--mark", "#fff");
+
+    const page = document.createElement("div");
+    page.className = "page";
+    page.style.fontFamily = st.font;
+    page.style.fontSize = `${Math.round(st.size * k)}px`;
+    page.style.fontWeight = st.weight || 400;
+    page.style.fontStyle = st.italic ? "italic" : "normal";
+    page.style.textTransform = st.upper ? "uppercase" : "none";
+
+    // 画面の上から下まで埋まる行数にし、各行の頭にも文を置いて左右も埋める
+    const lh = Math.round(st.size * k) * 1.12;
+    const half = Math.ceil(innerHeight / 2 / lh) + 1;
+    const filler = () => pick(LINES) + "  " + pick(LINES) + "  " + pick(LINES) + "  ";
+    let hitEl;
+    for (let n = -half; n <= half; n++) {
+      const p = document.createElement("p");
+      if (n === 0) {
+        const [pre, post] = pick(HITS);
+        p.className = "hit-line";
+        const a = document.createElement("span");
+        a.className = "rest";
+        a.textContent = filler() + pre;
+        hitEl = document.createElement("span");
+        hitEl.className = "hit";
+        hitEl.innerHTML = "<span>one</span>";
+        const b = document.createElement("span");
+        b.className = "rest";
+        b.textContent = post + "  " + filler();
+        p.append(a, hitEl, b);
+      } else {
+        p.textContent = filler() + filler();
+      }
+      page.append(p);
+    }
+    cut.append(page);
+    stage.append(cut);
+
+    // 「one」の中心が画面の中心に来るように紙面ごとずらす
+    const pr = page.getBoundingClientRect();
+    const hr = hitEl.getBoundingClientRect();
+    const x = innerWidth / 2 - (hr.left - pr.left + hr.width / 2);
+    const y = innerHeight / 2 - (hr.top - pr.top + hr.height / 2);
+    page.style.transform = `translate(${x}px, ${y}px)`;
+    return cut;
+  }
+
+  // ---- タイムライン（120BPM、1拍 = 0.5秒） ----
+  const BEAT = 0.5;
+  function timeline() {
+    const ev = [];
+    let t = 0.6;
+    ev.push({ t: 0, type: "intro" });
+    ev.push({ t: 0, type: "kick", soft: true }, { t: BEAT, type: "kick", soft: true });
+    t = BEAT * 2;
+    const sections = [
+      { n: 8, step: BEAT },
+      { n: 16, step: BEAT / 2 },
+      { n: 16, step: BEAT / 4 },
+    ];
+    let cut = 0;
+    for (const sec of sections) {
+      for (let i = 0; i < sec.n; i++) {
+        ev.push({ t, type: "cut", i: cut++, fast: sec.step < BEAT / 2 });
+        const onBeat = Math.abs(t / BEAT - Math.round(t / BEAT)) < 1e-6;
+        if (onBeat) ev.push({ t, type: "kick" });
+        if (sec.step < BEAT) ev.push({ t, type: "hat" });
+        if (sec.step === BEAT && i % 2 === 1) ev.push({ t, type: "snare" });
+        t += sec.step;
+      }
+    }
+    ev.push({ t, type: "black" });
+    ev.push({ t: t + BEAT / 2, type: "end" }, { t: t + BEAT / 2, type: "boom" });
+    return { ev: ev.sort((a, b) => a.t - b.t), zoomFrom: BEAT * 10, zoomTo: t, total: cut };
+  }
+
+  // ---- 音（WebAudioで合成） ----
+  let ac = null;
+  function sound(type, at) {
+    if (!ac) return;
+    const g = ac.createGain();
+    g.connect(ac.destination);
+    if (type === "kick") {
+      const o = ac.createOscillator();
+      o.frequency.setValueAtTime(140, at);
+      o.frequency.exponentialRampToValueAtTime(42, at + 0.14);
+      g.gain.setValueAtTime(0.9, at);
+      g.gain.exponentialRampToValueAtTime(0.001, at + 0.32);
+      o.connect(g); o.start(at); o.stop(at + 0.34);
+    } else if (type === "softkick") {
+      const o = ac.createOscillator();
+      o.frequency.setValueAtTime(90, at);
+      o.frequency.exponentialRampToValueAtTime(40, at + 0.2);
+      g.gain.setValueAtTime(0.35, at);
+      g.gain.exponentialRampToValueAtTime(0.001, at + 0.4);
+      o.connect(g); o.start(at); o.stop(at + 0.42);
+    } else if (type === "hat" || type === "snare") {
+      const len = type === "hat" ? 0.05 : 0.18;
+      const buf = ac.createBuffer(1, Math.ceil(ac.sampleRate * len), ac.sampleRate);
+      const d = buf.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      const src = ac.createBufferSource();
+      src.buffer = buf;
+      const f = ac.createBiquadFilter();
+      f.type = type === "hat" ? "highpass" : "bandpass";
+      f.frequency.value = type === "hat" ? 7000 : 1800;
+      g.gain.setValueAtTime(type === "hat" ? 0.22 : 0.5, at);
+      g.gain.exponentialRampToValueAtTime(0.001, at + len);
+      src.connect(f); f.connect(g); src.start(at);
+    } else if (type === "boom") {
+      [55, 110, 164.8, 220, 329.6].forEach((hz, n) => {
+        const o = ac.createOscillator();
+        const og = ac.createGain();
+        o.type = n === 0 ? "sine" : "triangle";
+        o.frequency.value = hz;
+        og.gain.setValueAtTime(0, at);
+        og.gain.linearRampToValueAtTime(n === 0 ? 0.6 : 0.08, at + 0.02);
+        og.gain.exponentialRampToValueAtTime(0.001, at + 3.2);
+        o.connect(og); og.connect(ac.destination);
+        o.start(at); o.stop(at + 3.3);
+      });
+    }
+  }
+
+  // ---- 再生 ----
+  const startScreen = document.getElementById("start");
+  const endScreen = document.getElementById("end");
+  let cuts = [];
+  let running = false;
+
+  async function prepare() {
+    const pre = document.getElementById("preload");
+    pre.innerHTML = STYLES.map((s) =>
+      `<span style="font-family:${s.font.replace(/"/g, "'")};font-weight:${s.weight || 400};font-style:${s.italic ? "italic" : "normal"}">one 今日はそれだけ ONE</span>`
+    ).join("");
+    try {
+      await Promise.race([document.fonts.ready, new Promise((r) => setTimeout(r, 2500))]);
+    } catch (e) {}
+    stage.innerHTML = "";
+    stage.style.transform = "";
+    seed = 7;
+    const tl = timeline();
+    cuts = Array.from({ length: tl.total }, (_, i) => buildCut(i));
+    return tl;
+  }
+
+  async function play(withSound) {
+    if (running) return;
+    running = true;
+    if (withSound) {
+      try {
+        ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+        await ac.resume();
+      } catch (e) { ac = null; }
+    } else {
+      ac = null;
+    }
+    const tl = await prepare();
+    startScreen.hidden = true;
+    endScreen.hidden = true;
+
+    const t0 = ac ? ac.currentTime + 0.12 : 0;
+    const p0 = performance.now() + 120;
+    if (ac) for (const e of tl.ev) {
+      if (e.type === "kick") sound(e.soft ? "softkick" : "kick", t0 + e.t);
+      if (e.type === "hat" || e.type === "snare" || e.type === "boom") sound(e.type, t0 + e.t);
+    }
+
+    const visual = tl.ev.filter((e) => ["intro", "cut", "black", "end"].includes(e.type));
+    let next = 0;
+    let current = null;
+    const now = () => (ac ? ac.currentTime - t0 : (performance.now() - p0) / 1000);
+
+    const frame = () => {
+      const t = now();
+      while (next < visual.length && visual[next].t <= t) {
+        const e = visual[next++];
+        if (current) current.classList.remove("on");
+        current = null;
+        if (e.type === "cut") {
+          current = cuts[e.i];
+          current.classList.add("on");
+          if (e.fast && e.i % 4 === 0) flash.animate([{ opacity: 0.5 }, { opacity: 0 }], { duration: 90 });
+        } else if (e.type === "intro") {
+          stage.style.background = "#000";
+        } else if (e.type === "end") {
+          endScreen.hidden = false;
+          endScreen.animate([
+            { opacity: 0, filter: "blur(16px)", transform: "scale(1.08)" },
+            { opacity: 1, filter: "blur(0)", transform: "scale(1)" },
+          ], { duration: 1100, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)" });
+          running = false;
+          return;
+        }
+      }
+      // 速くなる区間で、カメラがじわっと寄っていく
+      const z = Math.min(1, Math.max(0, (t - tl.zoomFrom) / (tl.zoomTo - tl.zoomFrom)));
+      stage.style.transform = `scale(${1 + 0.55 * z * z})`;
+      requestAnimationFrame(frame);
+    };
+    requestAnimationFrame(frame);
+  }
+
+  document.getElementById("playBtn").addEventListener("click", () => play(true));
+  document.getElementById("muteBtn").addEventListener("click", () => play(false));
+  document.getElementById("againBtn").addEventListener("click", () => play(!!ac));
+</script>
+</body>
+</html>
