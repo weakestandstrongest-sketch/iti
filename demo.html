@@ -1,14 +1,14 @@
 <!doctype html>
-<html lang="ja">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>one Match Cut</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<meta name="description" content="アプリ one のテキストマッチカット風デモ">
+<meta name="description" content="A text match cut demo for the one app">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Bebas+Neue&family=DM+Serif+Display:ital@1&family=Instrument+Serif&family=Noto+Sans+JP:wght@900&family=Noto+Serif+JP:wght@700&family=Space+Mono:wght@700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Bebas+Neue&family=DM+Serif+Display:ital@1&family=Instrument+Serif&family=Space+Mono:wght@700&display=swap">
 <style>
   /* 画面の中心に「one」を固定し、その周りの紙面だけを拍に合わせて差し替える */
   :root {
@@ -17,7 +17,7 @@
     --muted: #86868b;
     --glow: #8fa0ff;
     --on-glow: #000000;
-    --ui: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif;
+    --ui: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", system-ui, sans-serif;
     color-scheme: dark;
   }
 
@@ -147,23 +147,23 @@
 <section class="screen" id="start">
   <span class="dot" aria-hidden="true"></span>
   <h1 class="wordmark">one</h1>
-  <p class="sub">テキストマッチカットのデモ。約12秒、音が出ます。</p>
+  <p class="sub">A text match cut. 7 seconds, with sound.</p>
   <div class="row">
     <button class="play" id="playBtn" type="button">
       <svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2 1.2v11.6L12.5 7z" fill="currentColor"/></svg>
-      再生
+      Play
     </button>
-    <button class="link" id="muteBtn" type="button">音なしで再生</button>
+    <button class="link" id="muteBtn" type="button">Play without sound</button>
   </div>
 </section>
 
 <section class="screen" id="end" hidden>
   <span class="dot" aria-hidden="true"></span>
   <h1 class="wordmark">one</h1>
-  <p class="sub">今日やることを、1つだけ。</p>
+  <p class="sub">Just one thing today.</p>
   <div class="row">
-    <button class="play" id="againBtn" type="button">もう一度</button>
-    <a class="link" href="https://weakestandstrongest-sketch.github.io/iti/" target="_blank" rel="noopener">アプリを開く</a>
+    <button class="play" id="againBtn" type="button">Replay</button>
+    <a class="link" href="https://weakestandstrongest-sketch.github.io/iti/" target="_blank" rel="noopener">Open the app</a>
   </div>
 </section>
 
@@ -173,10 +173,10 @@
     { bg: "#f2f0ea", fg: "#141414", font: '"Instrument Serif", serif', size: 58, hl: "marker" },
     { bg: "#000000", fg: "#f5f5f7", font: '"Archivo Black", sans-serif', size: 44, hl: "invert", upper: true },
     { bg: "#8fa0ff", fg: "#05060a", font: '"Space Mono", monospace', size: 30, hl: "box" },
-    { bg: "#ffffff", fg: "#111111", font: '"Noto Serif JP", serif', size: 40, weight: 700, hl: "underline" },
+    { bg: "#ffffff", fg: "#111111", font: 'Georgia, "Times New Roman", serif', size: 42, weight: 700, hl: "underline" },
     { bg: "#0b0c10", fg: "#e9eaee", font: '"Bebas Neue", sans-serif', size: 104, hl: "glow", upper: true },
     { bg: "#e6e6e1", fg: "#1d1d1f", font: '"DM Serif Display", serif', size: 64, italic: true, hl: "marker" },
-    { bg: "#000000", fg: "#ffffff", font: '"Noto Sans JP", sans-serif', size: 50, weight: 900, hl: "blue" },
+    { bg: "#000000", fg: "#ffffff", font: '"Archivo Black", sans-serif', size: 54, hl: "blue" },
     { bg: "#ffffff", fg: "#000000", font: '-apple-system, "Helvetica Neue", Arial, sans-serif', size: 38, weight: 700, hl: "invert" },
   ];
 
@@ -184,21 +184,21 @@
     "you don't need a longer list",
     "everything else can wait until tomorrow",
     "close the other tabs",
-    "今日は、それだけでいい。",
+    "that is enough for today",
     "write it down before you start",
     "no notifications, no backlog",
     "small enough to finish today",
-    "やることは増やさない。",
+    "don't add anything else",
     "the rest is just noise",
     "start before you feel ready",
     "a single line on a blank page",
-    "決めたら、あとはやるだけ。",
+    "decide it, then do it",
     "focus is a decision",
     "stop planning and begin",
-    "今日を、軽くする。",
+    "make today lighter",
     "the list can stay closed",
     "quiet morning, warm coffee",
-    "ほかのことは、明日の自分に。",
+    "leave the rest for tomorrow",
   ];
 
   const HITS = [
@@ -206,13 +206,13 @@
     ["do ", " thing today"],
     ["only ", ""],
     ["the ", " that matters"],
-    ["今日の ", " だけ。"],
+    ["today, just ", ""],
     ["pick ", " and let the rest go"],
     ["", " step at a time"],
     ["no. ", ""],
     ["just ", " more"],
-    ["", " line, ", ""],
-    ["ほんとうに大事な ", " を"],
+    ["", " line, nothing else"],
+    ["the only ", " you need"],
     ["", " day"],
   ];
 
@@ -279,33 +279,33 @@
     return cut;
   }
 
-  // ---- タイムライン（120BPM、1拍 = 0.5秒） ----
-  const BEAT = 0.5;
+  // ---- タイムライン（140BPM。最初から半拍で切り、1/4拍、1/8拍へ加速する） ----
+  const BEAT = 60 / 140;
   function timeline() {
-    const ev = [];
-    let t = 0.6;
-    ev.push({ t: 0, type: "intro" });
-    ev.push({ t: 0, type: "kick", soft: true }, { t: BEAT, type: "kick", soft: true });
-    t = BEAT * 2;
+    const ev = [{ t: 0, type: "intro" }, { t: 0, type: "kick", soft: true }];
+    let t = BEAT;
     const sections = [
-      { n: 8, step: BEAT },
       { n: 16, step: BEAT / 2 },
       { n: 16, step: BEAT / 4 },
+      { n: 16, step: BEAT / 8 },
     ];
     let cut = 0;
+    let beat = 0;
     for (const sec of sections) {
       for (let i = 0; i < sec.n; i++) {
-        ev.push({ t, type: "cut", i: cut++, fast: sec.step < BEAT / 2 });
-        const onBeat = Math.abs(t / BEAT - Math.round(t / BEAT)) < 1e-6;
-        if (onBeat) ev.push({ t, type: "kick" });
-        if (sec.step < BEAT) ev.push({ t, type: "hat" });
-        if (sec.step === BEAT && i % 2 === 1) ev.push({ t, type: "snare" });
+        ev.push({ t, type: "cut", i: cut++, fast: sec.step < BEAT / 4 });
+        const onBeat = Math.abs((t - BEAT) / BEAT - Math.round((t - BEAT) / BEAT)) < 1e-6;
+        if (onBeat) {
+          ev.push({ t, type: "kick" });
+          if (beat++ % 2 === 1) ev.push({ t, type: "snare" });
+        }
+        ev.push({ t, type: "hat" });
         t += sec.step;
       }
     }
     ev.push({ t, type: "black" });
     ev.push({ t: t + BEAT / 2, type: "end" }, { t: t + BEAT / 2, type: "boom" });
-    return { ev: ev.sort((a, b) => a.t - b.t), zoomFrom: BEAT * 10, zoomTo: t, total: cut };
+    return { ev: ev.sort((a, b) => a.t - b.t), zoomFrom: BEAT, zoomTo: t, total: cut };
   }
 
   // ---- 音（WebAudioで合成） ----
@@ -365,7 +365,7 @@
   async function prepare() {
     const pre = document.getElementById("preload");
     pre.innerHTML = STYLES.map((s) =>
-      `<span style="font-family:${s.font.replace(/"/g, "'")};font-weight:${s.weight || 400};font-style:${s.italic ? "italic" : "normal"}">one 今日はそれだけ ONE</span>`
+      `<span style="font-family:${s.font.replace(/"/g, "'")};font-weight:${s.weight || 400};font-style:${s.italic ? "italic" : "normal"}">one ONE</span>`
     ).join("");
     try {
       await Promise.race([document.fonts.ready, new Promise((r) => setTimeout(r, 2500))]);
