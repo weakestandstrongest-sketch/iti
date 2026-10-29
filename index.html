@@ -628,10 +628,16 @@
       ], { delay: out + 600 + i * 110, duration: 900 });
     });
 
+    // マッチカット中のタップは、波紋と「one」が出る場面まで早送りする。
+    // その場面に入ってからのタップは、アプリの画面まで飛ばす
     const skip = () => {
       skipped = true;
       stage.remove();
-      anims.forEach((a) => a.finish());
+      if (anims[0].currentTime < T) {
+        anims.forEach((a) => { if (a.currentTime < T) a.currentTime = T; });
+      } else {
+        anims.forEach((a) => a.finish());
+      }
     };
     intro.addEventListener("pointerdown", skip);
     addEventListener("keydown", skip);
