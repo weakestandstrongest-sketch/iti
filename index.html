@@ -14,13 +14,20 @@
     --accent: #1f1d1a;
   }
   @media (prefers-color-scheme: dark) {
-    :root {
+    :root:not([data-theme="light"]) {
       --bg: #141412;
       --fg: #ece8e0;
       --muted: #6f6b64;
       --line: #34322e;
       --accent: #ece8e0;
     }
+  }
+  :root[data-theme="dark"] {
+    --bg: #141412;
+    --fg: #ece8e0;
+    --muted: #6f6b64;
+    --line: #34322e;
+    --accent: #ece8e0;
   }
 
   * { box-sizing: border-box; margin: 0; }
