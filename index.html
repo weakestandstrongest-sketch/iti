@@ -29,6 +29,7 @@
     --on-accent: #ffffff;
     --halo: rgba(79, 91, 213, 0.16);
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 28px rgba(0, 0, 0, 0.06);
+    --gap: 32px;
     --intro-bg: #000000;
     --intro-fg: #f5f5f7;
     --intro-glow: #8fa0ff;
@@ -86,17 +87,25 @@
     max-width: 640px;
     display: grid;
     justify-items: center;
-    gap: 36px;
+    gap: var(--gap);
     text-align: center;
   }
 
-  /* 光の点。起動時の点がここへ収まる */
+  /* 光の点。起動時の点がここへ収まる。輪まで含めた大きさを箱にして、上下の間隔をそろえる */
   .mark {
-    width: 14px;
-    height: 14px;
+    position: relative;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--halo);
+    box-shadow: 0 0 22px 4px var(--halo);
+  }
+  .mark::after {
+    content: "";
+    position: absolute;
+    inset: 6px;
     border-radius: 50%;
     background: var(--accent);
-    box-shadow: 0 0 0 6px var(--halo), 0 0 22px 4px var(--halo);
   }
   .intro .mark { opacity: 0; }
 
@@ -110,13 +119,13 @@
   }
 
   /* 入力画面 */
-  #form { gap: 28px; }
+  #form { width: 100%; display: grid; justify-items: center; gap: var(--gap); }
 
   #form label {
     font-size: clamp(26px, 7vw, 40px);
     font-weight: 700;
     letter-spacing: -0.01em;
-    line-height: 1.25;
+    line-height: 1.2;
     text-wrap: balance;
   }
 
@@ -486,7 +495,7 @@
 
     const $ = (s) => intro.querySelector(s);
     const ease = "cubic-bezier(0.2, 0.8, 0.2, 1)";
-    const swift = "cubic-bezier(0.65, 0, 0.25, 1)";
+    const swift = "cubic-bezier(0.45, 0, 0.15, 1)";
     const anims = [];
     const play = (el, frames, opts) => {
       const a = el.animate(frames, { fill: "both", easing: ease, ...opts });
@@ -524,15 +533,21 @@
       { delay: out + 100, duration: 900, easing: swift, fill: "forwards" });
 
     const orb = $(".orb");
+    // 大きさは描画中の値ではなくレイアウト上の値で測る（拡大アニメーション中の大きさを拾わないため）
     const orbRect = orb.getBoundingClientRect();
     const markRect = mark.getBoundingClientRect();
     const dx = markRect.left + markRect.width / 2 - (orbRect.left + orbRect.width / 2);
     const dy = markRect.top + markRect.height / 2 - (orbRect.top + orbRect.height / 2);
-    const s = markRect.width / orbRect.width;
+    const s = (markRect.width - 12) / orb.offsetWidth;
+    const dot = getComputedStyle(mark, "::after").backgroundColor;
+    const flyAt = out + 100, flyFor = 1300;
     const fly = play(orb, [
       { transform: "translate(0, 0) scale(1)", backgroundColor: getComputedStyle(orb).backgroundColor, boxShadow: getComputedStyle(orb).boxShadow },
-      { transform: `translate(${dx}px, ${dy}px) scale(${s})`, backgroundColor: getComputedStyle(mark).backgroundColor, boxShadow: "0 0 0 0 rgba(143, 160, 255, 0)" },
-    ], { delay: out + 100, duration: 1000, easing: swift, fill: "forwards" });
+      { transform: `translate(${dx}px, ${dy}px) scale(${s})`, backgroundColor: dot, boxShadow: "0 0 0 0 rgba(143, 160, 255, 0)" },
+    ], { delay: flyAt, duration: flyFor, easing: swift, fill: "forwards" });
+    // 着地の直前に、輪をまとったしるしへ重ねて切り替える
+    play(mark, [{ opacity: 0, transform: "scale(0.6)" }, { opacity: 1, transform: "scale(1)" }],
+      { delay: flyAt + flyFor - 350, duration: 500 });
 
     // 中身がふわりと立ち上がる
     const section = form.hidden ? view : form;
