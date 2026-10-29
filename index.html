@@ -725,22 +725,33 @@
     play(intro, [{ backgroundColor: getComputedStyle(intro).backgroundColor }, { backgroundColor: "transparent" }],
       { delay: out + 100, duration: 900, easing: swift, fill: "forwards" });
 
-    // 大きさは描画中の値ではなくレイアウト上の値で測る（拡大アニメーション中の大きさを拾わないため）
+    // 着地先は飛んでいる間も毎フレーム測り直す。フォントの読み込みや画面の高さの変化で
+    // 見出しの位置が動いても、点が古い位置に降りて「しるし」と二重に見えないようにする
     const orb = $(".orb");
-    const orbRect = orb.getBoundingClientRect();
-    const markRect = mark.getBoundingClientRect();
-    const dx = markRect.left + markRect.width / 2 - (orbRect.left + orbRect.width / 2);
-    const dy = markRect.top + markRect.height / 2 - (orbRect.top + orbRect.height / 2);
-    const s = (markRect.width - 12) / orb.offsetWidth;
+    const orbFrom = { backgroundColor: getComputedStyle(orb).backgroundColor, boxShadow: getComputedStyle(orb).boxShadow };
     const dot = getComputedStyle(mark, "::after").backgroundColor;
+    const flyFrames = () => {
+      const r = mark.getBoundingClientRect();
+      const c = intro.getBoundingClientRect();
+      const dx = r.left + r.width / 2 - (c.left + c.width / 2);
+      const dy = r.top + r.height / 2 - (c.top + c.height / 2);
+      // 大きさは描画中の値ではなくレイアウト上の値で測る（拡大アニメーション中の大きさを拾わないため）
+      const s = (mark.offsetWidth - 12) / orb.offsetWidth;
+      return [
+        { transform: "translate(0, 0) scale(1)", ...orbFrom },
+        { transform: `translate(${dx}px, ${dy}px) scale(${s})`, backgroundColor: dot, boxShadow: "0 0 0 0 rgba(143, 160, 255, 0)" },
+      ];
+    };
     const flyAt = out + 100, flyFor = 1300;
-    const fly = play(orb, [
-      { transform: "translate(0, 0) scale(1)", backgroundColor: getComputedStyle(orb).backgroundColor, boxShadow: getComputedStyle(orb).boxShadow },
-      { transform: `translate(${dx}px, ${dy}px) scale(${s})`, backgroundColor: dot, boxShadow: "0 0 0 0 rgba(143, 160, 255, 0)" },
-    ], { delay: flyAt, duration: flyFor, easing: swift, fill: "forwards" });
-    // 着地の直前に、輪をまとったしるしへ重ねて切り替える
-    play(mark, [{ opacity: 0, transform: "scale(0.6)" }, { opacity: 1, transform: "scale(1)" }],
-      { delay: flyAt + flyFor - 350, duration: 500 });
+    const fly = play(orb, flyFrames(), { delay: flyAt, duration: flyFor, easing: swift, fill: "forwards" });
+    const track = () => {
+      if (!intro.isConnected || fly.playState === "finished") return;
+      fly.effect.setKeyframes(flyFrames());
+      requestAnimationFrame(track);
+    };
+    requestAnimationFrame(track);
+    // 点がしるしにぴったり重なった瞬間に入れ替える
+    play(mark, [{ opacity: 0 }, { opacity: 1 }], { delay: flyAt + flyFor - 120, duration: 120, easing: "linear" });
 
     // 中身がふわりと立ち上がる
     const section = form.hidden ? view : form;
