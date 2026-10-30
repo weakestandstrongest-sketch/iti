@@ -303,6 +303,18 @@
   #intro .orb, #intro .halo, #intro .ripple, #intro .word { opacity: 0; }
   #intro .flash { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; }
 
+  /* 画面を切り替えるときの波紋 */
+  .fx-wave, .fx-ring {
+    position: fixed;
+    left: 0;
+    top: 0;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 50;
+  }
+  .fx-wave { background: radial-gradient(circle, var(--halo) 0%, var(--halo) 35%, transparent 70%); }
+  .fx-ring { border: 1.5px solid var(--accent); }
+
   @media (prefers-reduced-motion: reduce) {
     * { transition: none !important; }
   }
@@ -453,7 +465,7 @@
     state = { date: today(), text, done: false };
     save(state);
     input.blur();
-    render();
+    transition(document.getElementById("submitBtn"), render);
   });
 
   document.getElementById("doneBtn").addEventListener("click", () => {
@@ -462,15 +474,87 @@
     render();
   });
 
-  document.getElementById("editBtn").addEventListener("click", () => {
+  document.getElementById("editBtn").addEventListener("click", (e) => {
     const prev = state.text;
     state = null;
     save(null);
-    render();
-    input.value = prev;
-    field.classList.add("has-text");
-    input.select();
+    transition(e.currentTarget, () => {
+      render();
+      input.value = prev;
+      field.classList.add("has-text");
+      input.select();
+    });
   });
+
+  // ---- 画面の切り替え ----
+  // 押したボタンから波紋が広がり、光の点が脈打つ。いまの画面がにじんで消え、次の画面が浮かび上がる
+  let switching = false;
+
+  function wave(cls, x, y, size, frames, opts) {
+    const el = document.createElement("div");
+    el.className = cls;
+    el.style.width = el.style.height = `${size}px`;
+    el.style.left = `${x - size / 2}px`;
+    el.style.top = `${y - size / 2}px`;
+    document.body.append(el);
+    el.animate(frames, { fill: "both", ...opts }).finished.then(() => el.remove());
+  }
+
+  function center(el) {
+    const r = el.getBoundingClientRect();
+    return [r.left + r.width / 2, r.top + r.height / 2];
+  }
+
+  function transition(origin, change) {
+    if (switching) return;
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches || !document.body.animate) {
+      change();
+      return;
+    }
+    switching = true;
+    const soft = "cubic-bezier(0.2, 0.8, 0.2, 1)";
+
+    // 押したところから画面いっぱいに広がる波紋
+    const [x, y] = center(origin);
+    const reach = 2 * Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
+    wave("fx-wave", x, y, reach, [
+      { transform: "scale(0)", opacity: 1 },
+      { transform: "scale(1)", opacity: 0 },
+    ], { duration: 1100, easing: "cubic-bezier(0.1, 0.7, 0.3, 1)" });
+    wave("fx-ring", x, y, 60, [
+      { transform: "scale(0.6)", opacity: 0.9 },
+      { transform: `scale(${reach / 60})`, opacity: 0 },
+    ], { duration: 1200, easing: "cubic-bezier(0.1, 0.6, 0.3, 1)" });
+
+    // 光の点が一度だけ脈打つ
+    const mark = document.querySelector(".mark");
+    const [mx, my] = center(mark);
+    wave("fx-ring", mx, my, 26, [
+      { transform: "scale(1)", opacity: 0.8 },
+      { transform: "scale(5)", opacity: 0 },
+    ], { delay: 180, duration: 1000, easing: "cubic-bezier(0.1, 0.6, 0.3, 1)" });
+    mark.animate([{ transform: "scale(1)" }, { transform: "scale(1.35)" }, { transform: "scale(1)" }],
+      { delay: 120, duration: 600, easing: soft });
+
+    // いまの画面がにじんで消える
+    const before = form.hidden ? view : form;
+    const outs = [...before.children].map((el, i) => el.animate([
+      { opacity: 1, transform: "none", filter: "blur(0)" },
+      { opacity: 0, transform: "translateY(-10px) scale(0.98)", filter: "blur(8px)" },
+    ], { delay: i * 40, duration: 320, easing: "cubic-bezier(0.4, 0, 1, 1)", fill: "forwards" }));
+
+    Promise.all(outs.map((a) => a.finished)).then(() => {
+      change();
+      outs.forEach((a) => a.cancel());
+      // 次の画面が浮かび上がる
+      const after = form.hidden ? view : form;
+      const ins = [...after.children].map((el, i) => el.animate([
+        { opacity: 0, transform: "translateY(18px)", filter: "blur(10px)" },
+        { opacity: 1, transform: "none", filter: "blur(0)" },
+      ], { delay: 60 + i * 110, duration: 800, easing: soft, fill: "backwards" }));
+      Promise.all(ins.map((a) => a.finished)).then(() => { switching = false; });
+    });
+  }
 
   // タブを開きっぱなしで日付をまたいだ場合に備える
   document.addEventListener("visibilitychange", () => {
