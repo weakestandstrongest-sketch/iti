@@ -70,8 +70,6 @@
     background: var(--bg);
     color: var(--fg);
     font-family: var(--ui);
-    display: grid;
-    place-items: center;
     padding-top: max(24px, env(safe-area-inset-top, 0px));
     padding-bottom: max(24px, env(safe-area-inset-bottom, 0px));
     padding-left: max(16px, env(safe-area-inset-left, 0px));
@@ -82,9 +80,13 @@
 
   [hidden] { display: none !important; }
 
+  /* 光の点はどの画面でも同じ高さに置く。中身の高さで位置が変わると、切り替えのたびに点が動いてしまう */
   main {
     width: 100%;
     max-width: 640px;
+    margin: 0 auto;
+    padding-top: calc(36vh - 13px);
+    padding-top: calc(36svh - 13px);
     display: grid;
     justify-items: center;
     gap: var(--gap);
@@ -526,16 +528,13 @@
       { transform: `scale(${reach / 60})`, opacity: 0 },
     ], { duration: 1200, easing: "cubic-bezier(0.1, 0.6, 0.3, 1)" });
 
-    // 光の点が一度だけ脈打つ
+    // 光の点から波紋がひとつ広がる（点そのものは動かさない）
     const mark = document.querySelector(".mark");
     const [mx, my] = center(mark);
     wave("fx-ring", mx, my, 26, [
       { transform: "scale(1)", opacity: 0.8 },
       { transform: "scale(5)", opacity: 0 },
     ], { delay: 180, duration: 1000, easing: "cubic-bezier(0.1, 0.6, 0.3, 1)" });
-    // 入れ替えで丸を滑らせる前に終わるよう、短めに
-    mark.animate([{ transform: "scale(1)" }, { transform: "scale(1.35)" }, { transform: "scale(1)" }],
-      { duration: 380, easing: soft });
 
     // いまの画面がにじんで消える
     const before = form.hidden ? view : form;
@@ -545,15 +544,8 @@
     ], { delay: i * 40, duration: 320, easing: "cubic-bezier(0.4, 0, 1, 1)", fill: "forwards" }));
 
     Promise.all(outs.map((a) => a.finished)).then(() => {
-      // 画面ごとに高さが違うので、入れ替えると丸の位置が変わる。跳ばずに新しい位置へ滑らせる
-      const top0 = mark.getBoundingClientRect().top;
       change();
       outs.forEach((a) => a.cancel());
-      const dy = top0 - mark.getBoundingClientRect().top;
-      if (Math.abs(dy) > 0.5) {
-        mark.animate([{ transform: `translateY(${dy}px)` }, { transform: "none" }],
-          { duration: 700, easing: "cubic-bezier(0.45, 0, 0.15, 1)" });
-      }
       // 次の画面が浮かび上がる
       const after = form.hidden ? view : form;
       const ins = [...after.children].map((el, i) => el.animate([
