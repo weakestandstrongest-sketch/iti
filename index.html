@@ -333,10 +333,11 @@
     position: relative;
     display: flex;
     align-items: stretch;
-    width: min(28rem, calc(100vw - 1.5rem));
-    height: 64px;
+    /* タブは2つだけなので、幅はタブ2つ分にとどめる */
+    width: 200px;
+    height: 62px;
     padding: 4px;
-    border-radius: 32px;
+    border-radius: 31px;
     pointer-events: auto;
     background: color-mix(in srgb, var(--bg) 58%, transparent);
     -webkit-backdrop-filter: blur(20px);
