@@ -30,9 +30,8 @@
     --halo: rgba(79, 91, 213, 0.16);
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 28px rgba(0, 0, 0, 0.06);
     --gap: 32px;
-    --glass: rgba(255, 255, 255, 0.66);
-    --glass-line: rgba(0, 0, 0, 0.08);
     --pill: rgba(0, 0, 0, 0.06);
+    --sep-strong: rgba(0, 0, 0, 0.16);
     --intro-bg: #000000;
     --intro-fg: #f5f5f7;
     --intro-glow: #8fa0ff;
@@ -49,9 +48,8 @@
       --on-accent: #000000;
       --halo: rgba(143, 160, 255, 0.2);
       --shadow: 0 0 0 1px rgba(255, 255, 255, 0.06);
-      --glass: rgba(36, 36, 38, 0.6);
-      --glass-line: rgba(255, 255, 255, 0.14);
       --pill: rgba(255, 255, 255, 0.12);
+      --sep-strong: rgba(255, 255, 255, 0.2);
       color-scheme: dark;
     }
   }
@@ -65,9 +63,8 @@
     --on-accent: #000000;
     --halo: rgba(143, 160, 255, 0.2);
     --shadow: 0 0 0 1px rgba(255, 255, 255, 0.06);
-    --glass: rgba(36, 36, 38, 0.6);
-    --glass-line: rgba(255, 255, 255, 0.14);
     --pill: rgba(255, 255, 255, 0.12);
+    --sep-strong: rgba(255, 255, 255, 0.2);
     color-scheme: dark;
   }
 
@@ -319,52 +316,73 @@
   #intro .orb, #intro .halo, #intro .ripple, #intro .word { opacity: 0; }
   #intro .flash { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; }
 
-  /* 下のタブバー：画面の下に浮かぶガラスのバー */
+  /* 下のタブバー：jam（communication）と同じ、透明感のある丸いガラスのバー */
   .tabbar {
     position: fixed;
     left: 0;
     right: 0;
-    bottom: calc(14px + env(safe-area-inset-bottom, 0px));
-    width: max-content;
-    margin: 0 auto;
-    display: flex;
-    padding: 4px;
-    border-radius: 999px;
-    background: var(--glass);
-    -webkit-backdrop-filter: blur(24px) saturate(180%);
-    backdrop-filter: blur(24px) saturate(180%);
-    box-shadow: 0 10px 36px rgba(0, 0, 0, 0.14), inset 0 0 0 0.5px var(--glass-line);
+    bottom: 0;
     z-index: 40;
+    display: flex;
+    justify-content: center;
+    padding: 0 12px max(10px, env(safe-area-inset-bottom, 0px));
+    pointer-events: none;
   }
   .intro .tabbar { opacity: 0; }
+  .glass-bar {
+    position: relative;
+    display: flex;
+    align-items: stretch;
+    width: min(28rem, calc(100vw - 1.5rem));
+    height: 64px;
+    padding: 4px;
+    border-radius: 32px;
+    pointer-events: auto;
+    background: color-mix(in srgb, var(--bg) 58%, transparent);
+    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(20px);
+    transform: translateZ(0);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.14), inset 0 0 0 0.5px var(--sep-strong), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  }
+  /* 選んだタブへ、伸び縮みしながら滑っていく丸いハイライト */
   .tab-pill {
     position: absolute;
     top: 4px;
+    bottom: 4px;
     left: 4px;
-    width: 96px;
-    height: 54px;
-    border-radius: 999px;
-    background: var(--pill);
-    transition: transform 0.5s cubic-bezier(0.3, 1.25, 0.5, 1);
+    width: calc((100% - 8px) / 2);
+    pointer-events: none;
+    transition: transform 620ms cubic-bezier(0.34, 1.45, 0.5, 1);
   }
-  .tabbar .tab {
+  .tab-pill span {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--fg) 10%, transparent);
+    box-shadow: inset 0 0 0 0.5px var(--sep-strong);
+  }
+  .glass-bar .tab {
     position: relative;
-    z-index: 1;
-    width: 96px;
-    height: 54px;
+    flex: 1;
+    min-width: 0;
+    height: 100%;
     padding: 0;
     border-radius: 999px;
-    display: grid;
-    place-content: center;
-    justify-items: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
     gap: 2px;
-    font-size: 10.5px;
+    font-size: 10px;
     font-weight: 600;
-    letter-spacing: 0.02em;
     color: var(--muted);
+    transition: color 0.2s, transform 0.2s;
   }
-  .tabbar .tab svg { width: 24px; height: 24px; }
-  .tabbar .tab[aria-selected="true"] { color: var(--accent); }
+  .glass-bar .tab:active { transform: scale(0.9); }
+  .glass-bar .tab svg { width: 22px; height: 22px; stroke-width: 1.8; }
+  .glass-bar .tab[aria-selected="true"] { color: var(--fg); }
+  .glass-bar .tab[aria-selected="true"] svg { stroke-width: 2.3; }
 
   /* カレンダー：iPhoneの「カレンダー」の月表示に寄せる */
   .cal {
@@ -541,16 +559,18 @@
   </div>
 </section>
 
-<nav class="tabbar" role="tablist" aria-label="画面">
-  <span class="tab-pill" aria-hidden="true"></span>
-  <button class="tab" id="tabToday" type="button" role="tab" aria-selected="true" aria-controls="todayScreen">
-    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="3.5" fill="currentColor"/></svg>
-    今日
-  </button>
-  <button class="tab" id="tabCal" type="button" role="tab" aria-selected="false" aria-controls="calScreen">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="3.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>
-    カレンダー
-  </button>
+<nav class="tabbar" aria-label="画面">
+  <div class="glass-bar" role="tablist">
+    <span class="tab-pill" aria-hidden="true"><span></span></span>
+    <button class="tab" id="tabToday" type="button" role="tab" aria-selected="true" aria-controls="todayScreen">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg>
+      今日
+    </button>
+    <button class="tab" id="tabCal" type="button" role="tab" aria-selected="false" aria-controls="calScreen">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v4M16 2v4"/><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01"/></svg>
+      カレンダー
+    </button>
+  </div>
 </nav>
 
 <script src="matchcut.js"></script>
@@ -1017,7 +1037,18 @@
       tabs[k].setAttribute("aria-selected", String(k === name));
       screens[k].hidden = k !== name;
     }
-    document.querySelector(".tab-pill").style.transform = name === "cal" ? "translateX(96px)" : "none";
+    const pill = document.querySelector(".tab-pill");
+    pill.style.transform = name === "cal" ? "translateX(100%)" : "none";
+    // ぷにっと伸びて縮む（jam と同じ動き）
+    if (pill.firstElementChild.animate && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      pill.firstElementChild.animate([
+        { transform: "scale(1, 1)" },
+        { transform: "scale(1.32, 0.84)", offset: 0.28 },
+        { transform: "scale(0.94, 1.1)", offset: 0.58 },
+        { transform: "scale(1.03, 0.98)", offset: 0.8 },
+        { transform: "scale(1, 1)" },
+      ], { duration: 560, easing: "cubic-bezier(0.3, 0.9, 0.4, 1)" });
+    }
     if (name === "cal") {
       if (calMode === "year") renderYear();
       else { renderCal(); renderDetail(); }
