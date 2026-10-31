@@ -86,10 +86,9 @@
 
   [hidden] { display: none !important; }
 
-  /* ホーム画面から開いたとき、iPhoneは画面の上端（時計の帯）をぼかす。中身はその下から始める */
-  @media (display-mode: standalone) {
-    body { padding-top: calc(env(safe-area-inset-top, 0px) + 56px); }
-  }
+  /* ホーム画面から開いたとき、iPhoneは画面の上端（時計の帯）をぼかす。カレンダーはその下から始める。
+     iPhoneでは display-mode が効かないことがあるので、起動時に html へ付ける .standalone で判定する */
+  .standalone #calScreen { padding-top: 56px; }
 
   /* 光の点はどの画面でも同じ高さに置く。中身の高さで位置が変わると、切り替えのたびに点が動いてしまう */
   main {
@@ -496,6 +495,13 @@
 </style>
 </head>
 <body class="intro">
+<script>
+  try {
+    if (navigator.standalone || matchMedia("(display-mode: standalone)").matches) {
+      document.documentElement.classList.add("standalone");
+    }
+  } catch (e) {}
+</script>
 <div id="intro" aria-hidden="true">
   <div class="stage"></div>
   <div class="flash"></div>
