@@ -89,6 +89,11 @@
 
   [hidden] { display: none !important; }
 
+  /* ホーム画面から開いたとき、iPhoneは画面の上端（時計の帯）をぼかす。中身はその下から始める */
+  @media (display-mode: standalone) {
+    body { padding-top: calc(env(safe-area-inset-top, 0px) + 56px); }
+  }
+
   /* 光の点はどの画面でも同じ高さに置く。中身の高さで位置が変わると、切り替えのたびに点が動いてしまう */
   main {
     width: 100%;
@@ -371,12 +376,28 @@
     gap: 14px;
   }
   .cal-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-  .cal-year { font-size: 17px; color: var(--accent); }
-  .cal-nav { display: flex; align-items: center; gap: 4px; }
+  .cal-year { display: inline-flex; align-items: center; gap: 2px; font-size: 17px; color: var(--accent); padding: 8px 4px 8px 0; }
+  .cal-year svg { width: 20px; height: 20px; }
+  .cal-year[hidden] { display: none; }
+  .cal-view { display: grid; gap: 14px; }
+  #monthView > h2 { font: inherit; }
+  .cal-nav { display: flex; align-items: center; gap: 4px; margin-left: auto; }
   .cal-nav button { width: 40px; height: 40px; padding: 0; border-radius: 50%; display: grid; place-items: center; }
   .cal-nav button svg { width: 20px; height: 20px; }
   .cal-nav #todayBtn { width: auto; padding: 0 14px; border-radius: 999px; background: var(--pill); font-size: 15px; font-weight: 600; }
-  .cal-month { font-size: 34px; font-weight: 700; letter-spacing: -0.01em; }
+  .cal-month { font-size: 34px; font-weight: 700; letter-spacing: -0.01em; color: var(--fg); padding: 0; text-align: left; }
+  button.cal-month:active { transform: none; opacity: 0.6; }
+
+  /* 年の表示：12か月を小さく並べ、タップでその月へ */
+  .year-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px 14px; touch-action: pan-y; }
+  .mini { display: grid; gap: 6px; align-content: start; padding: 4px 0; text-align: left; color: var(--fg); border-radius: 12px; }
+  .mini:active { transform: scale(0.97); }
+  .mini-name { font-size: 17px; font-weight: 700; }
+  .mini.now .mini-name { color: var(--accent); }
+  .mini-days { display: grid; grid-template-columns: repeat(7, 1fr); row-gap: 2px; font-size: 9.5px; font-weight: 500; font-variant-numeric: tabular-nums; }
+  .mini-days span { height: 15px; display: grid; place-items: center; border-radius: 50%; }
+  .mini-days .has { color: var(--accent); font-weight: 700; }
+  .mini-days .t { background: var(--accent); color: var(--on-accent); font-weight: 700; }
   .cal-week, .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); }
   .cal-week span { text-align: center; font-size: 12px; font-weight: 600; color: var(--muted); }
   .cal-grid { touch-action: pan-y; }
@@ -494,21 +515,30 @@
 
 <section id="calScreen" class="cal" hidden>
   <div class="cal-top">
-    <span class="cal-year" id="calYear"></span>
+    <button class="cal-year" id="calYear" type="button" aria-label="年の表示へ">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+      <span></span>
+    </button>
     <div class="cal-nav">
       <button id="todayBtn" type="button">今日</button>
-      <button id="prevBtn" type="button" aria-label="前の月">
+      <button id="prevBtn" type="button" aria-label="前へ">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
       </button>
-      <button id="nextBtn" type="button" aria-label="次の月">
+      <button id="nextBtn" type="button" aria-label="次へ">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>
       </button>
     </div>
   </div>
-  <h2 class="cal-month" id="calMonth"></h2>
-  <div class="cal-week" aria-hidden="true"><span>日</span><span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span>土</span></div>
-  <div class="cal-grid" id="calGrid"></div>
-  <div class="cal-detail" id="calDetail" aria-live="polite"></div>
+  <div class="cal-view" id="monthView">
+    <h2><button class="cal-month" id="calMonth" type="button" aria-label="年の表示へ"></button></h2>
+    <div class="cal-week" aria-hidden="true"><span>日</span><span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span>土</span></div>
+    <div class="cal-grid" id="calGrid"></div>
+    <div class="cal-detail" id="calDetail" aria-live="polite"></div>
+  </div>
+  <div class="cal-view" id="yearView" hidden>
+    <h2 class="cal-month" id="yearTitle"></h2>
+    <div class="year-grid" id="yearGrid"></div>
+  </div>
 </section>
 
 <nav class="tabbar" role="tablist" aria-label="画面">
@@ -797,7 +827,7 @@
   function renderCal(dir = 0) {
     const y = viewMonth.getFullYear();
     const m = viewMonth.getMonth();
-    document.getElementById("calYear").textContent = `${y}年`;
+    document.querySelector("#calYear span").textContent = `${y}年`;
     document.getElementById("calMonth").textContent = `${m + 1}月`;
     const first = new Date(y, m, 1).getDay();
     const days = new Date(y, m + 1, 0).getDate();
@@ -853,13 +883,91 @@
   }
 
   function moveMonth(step) {
+    if (calMode === "year") {
+      viewMonth.setFullYear(viewMonth.getFullYear() + step);
+      renderYear(step);
+      return;
+    }
     viewMonth.setMonth(viewMonth.getMonth() + step);
     renderCal(step);
   }
 
+  // ---- 年の表示 ----
+  const monthView = document.getElementById("monthView");
+  const yearView = document.getElementById("yearView");
+  const yearGrid = document.getElementById("yearGrid");
+  let calMode = "month";
+
+  function renderYear(dir = 0) {
+    const y = viewMonth.getFullYear();
+    const now = new Date();
+    document.getElementById("yearTitle").textContent = `${y}年`;
+    let html = "";
+    for (let m = 0; m < 12; m++) {
+      const first = new Date(y, m, 1).getDay();
+      const days = new Date(y, m + 1, 0).getDate();
+      let cells = "<span></span>".repeat(first);
+      for (let d = 1; d <= days; d++) {
+        const key = keyOf(y, m, d);
+        const cls = key === today() ? "t" : entryOf(key) ? "has" : "";
+        cells += `<span class="${cls}">${d}</span>`;
+      }
+      const isNow = y === now.getFullYear() && m === now.getMonth();
+      html += `<button type="button" class="mini${isNow ? " now" : ""}" data-m="${m}" aria-label="${y}年${m + 1}月"><span class="mini-name">${m + 1}月</span><span class="mini-days" aria-hidden="true">${cells}</span></button>`;
+    }
+    yearGrid.innerHTML = html;
+    if (dir && yearGrid.animate) {
+      yearGrid.animate([
+        { opacity: 0, transform: `translateX(${dir * 28}px)` },
+        { opacity: 1, transform: "none" },
+      ], { duration: 380, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)" });
+    }
+  }
+
+  // 月 ⇄ 年 は、iPhoneのカレンダーのように拡大・縮小して切り替える
+  function setMode(mode, from) {
+    if (mode === calMode) return;
+    calMode = mode;
+    const toYear = mode === "year";
+    document.getElementById("calYear").hidden = toYear;
+    document.getElementById("prevBtn").setAttribute("aria-label", toYear ? "前の年" : "前の月");
+    document.getElementById("nextBtn").setAttribute("aria-label", toYear ? "次の年" : "次の月");
+    if (toYear) renderYear(); else { renderCal(); renderDetail(); }
+    const show = toYear ? yearView : monthView;
+    const hide = toYear ? monthView : yearView;
+    hide.hidden = true;
+    show.hidden = false;
+    if (!show.animate || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (from) {
+      const r = from.getBoundingClientRect();
+      const c = show.getBoundingClientRect();
+      show.style.transformOrigin = `${r.left + r.width / 2 - c.left}px ${r.top + r.height / 2 - c.top}px`;
+    } else {
+      show.style.transformOrigin = "50% 0";
+    }
+    show.animate([
+      { opacity: 0, transform: `scale(${toYear ? 1.12 : 0.4})` },
+      { opacity: 1, transform: "none" },
+    ], { duration: 460, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)" });
+  }
+
+  yearGrid.addEventListener("click", (e) => {
+    const mini = e.target.closest(".mini");
+    if (!mini || swiped) return;
+    const y = viewMonth.getFullYear();
+    const m = Number(mini.dataset.m);
+    viewMonth.setFullYear(y, m, 1);
+    // その月が今月なら今日を、それ以外は1日を選んでおく
+    const now = new Date();
+    selected = y === now.getFullYear() && m === now.getMonth() ? today() : keyOf(y, m, 1);
+    setMode("month", mini);
+  });
+  document.getElementById("calYear").addEventListener("click", () => setMode("year"));
+  document.getElementById("calMonth").addEventListener("click", () => setMode("year"));
+
   calGrid.addEventListener("click", (e) => {
     const day = e.target.closest(".cal-day");
-    if (!day) return;
+    if (!day || swiped) return;
     selected = day.dataset.key;
     renderCal();
     renderDetail();
@@ -871,19 +979,31 @@
     const step = Math.sign((now.getFullYear() - viewMonth.getFullYear()) * 12 + now.getMonth() - viewMonth.getMonth());
     viewMonth.setFullYear(now.getFullYear(), now.getMonth(), 1);
     selected = today();
+    if (calMode === "year") {
+      setMode("month");
+      return;
+    }
     renderCal(step);
     renderDetail();
   });
 
   // 左右にスワイプで月を移動
   let swipeX = null;
-  calGrid.addEventListener("pointerdown", (e) => { swipeX = e.clientX; });
-  calGrid.addEventListener("pointerup", (e) => {
-    if (swipeX === null) return;
-    const dx = e.clientX - swipeX;
-    swipeX = null;
-    if (Math.abs(dx) > 50) moveMonth(dx < 0 ? 1 : -1);
-  });
+  let swiped = false;
+  for (const el of [calGrid, yearGrid]) {
+    el.addEventListener("pointerdown", (e) => { swipeX = e.clientX; });
+    el.addEventListener("pointerup", (e) => {
+      if (swipeX === null) return;
+      const dx = e.clientX - swipeX;
+      swipeX = null;
+      if (Math.abs(dx) > 50) {
+        // スワイプの直後に来るクリックで、日や月を選んでしまわないようにする
+        swiped = true;
+        setTimeout(() => { swiped = false; }, 0);
+        moveMonth(dx < 0 ? 1 : -1);
+      }
+    });
+  }
 
   // ---- タブ ----
   const tabs = { today: document.getElementById("tabToday"), cal: document.getElementById("tabCal") };
@@ -899,8 +1019,8 @@
     }
     document.querySelector(".tab-pill").style.transform = name === "cal" ? "translateX(96px)" : "none";
     if (name === "cal") {
-      renderCal();
-      renderDetail();
+      if (calMode === "year") renderYear();
+      else { renderCal(); renderDetail(); }
     }
     if (screens[name].animate && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
       screens[name].animate([
